@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initCaseView();
       } catch (err) {
-        alert(err.message || 'Failed to assign attorney.');
+        showToast(err.message || 'Failed to assign attorney.', 'error');
       }
     });
   }
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initCaseView();
       } catch (err) {
-        alert(err.message || 'Failed to link client.');
+        showToast(err.message || 'Failed to link client.', 'error');
       }
     });
   }
