@@ -62,10 +62,12 @@ exports.createCase = catchAsync(async (req, res, next) => {
   });
 });
 
-// Fetch all active, visible cases
+// Fetch all active, visible cases (with optional filters)
 exports.getAllCases = catchAsync(async (req, res, next) => {
-  const [cases] = await db.execute(
-    `SELECT
+  const { q, category, priority, status, attorney } = req.query;
+
+  let sql = `
+    SELECT
       cf.cf_code,
       cf.cf_name,
       cf.description,
@@ -85,9 +87,35 @@ exports.getAllCases = catchAsync(async (req, res, next) => {
      LEFT JOIN case_status st ON cf.status_id = st.id
      LEFT JOIN case_priority pr ON cf.priority_id = pr.id
      LEFT JOIN user_account u ON cf.created_by = u.user_id
-     WHERE cf.is_deleted = 0 AND cf.is_visible = 1
-     ORDER BY cf.creation_date DESC`
-  );
+  `;
+  const params = [];
+  const conditions = ['cf.is_deleted = 0', 'cf.is_visible = 1'];
+
+  if (q) {
+    conditions.push('(cf.cf_name LIKE ? OR cf.description LIKE ?)');
+    params.push(`%${q}%`, `%${q}%`);
+  }
+  if (category) {
+    conditions.push('cat.code = ?');
+    params.push(category);
+  }
+  if (priority) {
+    conditions.push('pr.code = ?');
+    params.push(priority);
+  }
+  if (status) {
+    conditions.push('st.code = ?');
+    params.push(status);
+  }
+  if (attorney) {
+    sql += ` JOIN case_attorney ca ON cf.cf_code = ca.cf_code`;
+    conditions.push('ca.attorney_id = ?');
+    params.push(attorney);
+  }
+
+  sql += ` WHERE ` + conditions.join(' AND ') + ` ORDER BY cf.creation_date DESC`;
+
+  const [cases] = await db.execute(sql, params);
 
   res.status(200).json({
     status: 'success',

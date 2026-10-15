@@ -105,6 +105,14 @@ development stage they represent.
 ### Notes
 - Public case-lookup UI, advanced search, secure downloads still pending.
 
+## v1.6.0 — Advanced Case Search + Secure Download
+**Date:** 2026-10-16
+### Added
+- Server-side case filters on `GET /api/v1/cases` (q, category, priority, status, attorney).
+- Secure document download: `GET /api/v1/documents/:id/download` (auth required).
+### Notes
+- Scanned/image-only PDF OCR remains unsupported (documented limitation).
+
 ## Known Limitations (current release)
 1. Scanned/image-only PDFs are not OCR-searchable (text-based PDFs + images only).
 2. Hearing schedule conflict prevention is now enforced (admin override available).
