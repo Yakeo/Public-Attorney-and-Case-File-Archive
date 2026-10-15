@@ -127,6 +127,13 @@ development stage they represent.
 ### Notes
 - Secure download UI and advanced search UI still pending.
 
+## v1.9.0 — Secure Download UI
+**Date:** 2026-10-16
+### Added
+- Download links in case document list (authenticated).
+### Notes
+- Advanced search UI and public case-lookup UI remain basic.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).
