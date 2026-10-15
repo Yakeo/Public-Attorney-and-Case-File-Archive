@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attorney Profile - PACFAS</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <a href="index.html" class="logo-link">
+        <div class="logo-box">PA</div>
+        <span>PACFAS</span>
+      </a>
+    </div>
+    <nav class="nav-links">
+      <a href="index.html#directory">← Back to Directory</a>
+      <button id="openLoginBtn" class="btn-primary">Staff / Attorney Login</button>
+      <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
+      <button id="themeToggleBtn" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem;">
+        <span id="themeIcon">🌙</span>
+        <span id="themeText" style="font-size: 0.75rem;">Dark</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Profile Container -->
+  <main class="container profile-page">
+    <!-- Dynamic Header Card -->
+    <div id="profileHeader" class="card profile-header-card">
+      <div class="loading-spinner">Loading attorney profile...</div>
+    </div>
+
+    <!-- Details Grid (Bio & Case History) -->
+    <div class="profile-content-grid">
+      <!-- Left Column: Professional Details -->
+      <section class="card">
+        <h3>Professional Overview</h3>
+        <hr class="divider">
+        <div id="profileDetails">
+          <!-- Populated by profile.js -->
+        </div>
+      </section>
+
+      <!-- Right Column: Public Case History -->
+      <section class="card">
+        <h3>Public Records & Verified Cases</h3>
+        <hr class="divider">
+        <div id="publicCasesList">
+          <!-- Populated by profile.js -->
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Staff Login Modal (Included across pages for quick access) -->
+  <div id="loginModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeLoginBtn" class="modal-close">&times;</button>
+      <h2>Staff Portal Sign In</h2>
+      <p class="subtitle">Enter authorized attorney or admin credentials.</p>
+      
+      <div id="loginError" class="error-banner hidden"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" required placeholder="attorney@lawfirm.com">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-primary full-width">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>

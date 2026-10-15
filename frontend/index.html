@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Public Attorney and Case File Archive - PACFAS</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <a href="index.html" class="logo-link">
+        <div class="logo-box">PA</div>
+        <span>PACFAS</span>
+      </a>
+    </div>
+    <nav class="nav-links">
+      <a href="#directory">Directory</a>
+      <a href="#about">About</a>
+      <a href="dashboard.html" class="btn-secondary btn-sm">Workspace</a>
+      <button id="themeToggleBtn" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; cursor: pointer;">
+        <span id="themeIcon">☀️</span>
+        <span id="themeText" style="font-size: 0.75rem;">Light</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section text-center">
+    <span class="hero-badge">Verified Public Legal Archive</span>
+    <h1 class="hero-title">Legal Document & Case Management System</h1>
+    <p class="hero-subtitle">
+      Search for legal counsel, view verified public records, or access attorney workspaces with full transparency and security.
+    </p>
+
+    <!-- Clean Single Search Bar Container -->
+    <div class="hero-search-card">
+      <input type="text" id="landingSearchInput" placeholder="Search attorney name, practice area...">
+      <select id="landingSpecialtySelect">
+        <option value="All">All Specialties</option>
+        <option value="Corporate">Corporate</option>
+        <option value="Criminal">Criminal</option>
+        <option value="Civil">Civil</option>
+      </select>
+      <button id="btnLandingSearch" class="btn-primary">Search Directory</button>
+    </div>
+
+    <!-- Scroll Indicator -->
+    <a href="#directory" class="scroll-indicator">
+      <span>Scroll to explore directory</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 5v14M19 12l-7 7-7-7"/>
+      </svg>
+    </a>
+  </section>
+
+  <!-- Attorney Directory Listing Grid -->
+  <main id="directory" class="container">
+    <h2>Attorney Directory</h2>
+    <div id="attorneyGrid" class="grid-container">
+      <!-- Populated dynamically by landing.js -->
+    </div>
+  </main>
+
+  <!-- Staff/Attorney Login Modal -->
+  <div id="loginModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeLoginBtn" class="modal-close">&times;</button>
+      <h2>Staff Portal Sign In</h2>
+      <p class="subtitle">Enter authorized attorney or admin credentials.</p>
+      
+      <div id="loginError" class="error-banner hidden"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" required placeholder="attorney@pacfas.gov">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-primary full-width">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Load Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/landing.js"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Case File Details - PACFAS</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <a href="dashboard.html" class="logo-link">
+        <div class="logo-box">PA</div>
+        <span>PACFAS</span>
+      </a>
+    </div>
+    <nav class="nav-links">
+      <a href="dashboard.html" class="btn-link">← Back to Dashboard</a>
+      <button id="logoutBtn" class="btn-secondary">Logout</button>
+      <button id="themeToggleBtn" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem;">
+        <span id="themeIcon">🌙</span>
+        <span id="themeText" style="font-size: 0.75rem;">Dark</span>
+      </button>
+    </nav>
+  </header>
+
+  <main class="container dashboard-container">
+    
+    <!-- Case Header Banner -->
+    <section id="caseHeaderCard" class="card profile-header-card">
+      <div class="loading-spinner">Loading case details...</div>
+    </section>
+
+    <div class="profile-content-grid">
+      
+      <!-- Left Column: Case Information & Hearings -->
+      <div class="flex-col gap-1">
+        <section class="card">
+          <h3>Case Information</h3>
+          <hr class="divider">
+          <div id="caseMetaDetails">
+            <!-- Populated by case-details.js -->
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header-flex">
+            <h3>Scheduled Hearings</h3>
+            <button id="openHearingModalBtn" class="btn-secondary btn-sm">+ Add Hearing</button>
+          </div>
+          <hr class="divider">
+          <div id="hearingsList">
+            <!-- Populated by case-details.js -->
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Document Archive & OCR Uploads -->
+      <section class="card">
+        <div class="card-header-flex">
+          <h3>Document Archive</h3>
+          <button id="openUploadModalBtn" class="btn-primary btn-sm">+ Upload Document</button>
+        </div>
+        <hr class="divider">
+        
+        <div id="documentsList">
+          <!-- Populated by case-details.js -->
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Upload Document Modal with OCR Trigger -->
+  <div id="uploadModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeUploadModalBtn" class="modal-close">&times;</button>
+      <h2>Upload Case Document</h2>
+      <p class="subtitle">Upload scanned briefs, evidence files, or PDFs (max 25MB). Tesseract OCR will parse selectable text automatically.</p>
+      
+      <div id="uploadError" class="error-banner hidden"></div>
+
+      <form id="uploadDocForm">
+        <div class="form-group">
+          <label for="docTitleInput">Document Title / Tag</label>
+          <input type="text" id="docTitleInput" required placeholder="e.g., Sworn Affidavit of Witness">
+        </div>
+
+        <div class="form-group">
+          <label for="docFileInput">Select File (PDF, PNG, JPG)</label>
+          <input type="file" id="docFileInput" required accept=".pdf,.png,.jpg,.jpeg">
+        </div>
+
+        <button type="submit" id="submitUploadBtn" class="btn-primary full-width">Upload & Extract Text</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/case-details.js"></script>
+</body>
+</html>

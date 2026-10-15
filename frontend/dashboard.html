@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attorney Workspace - PACFAS</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+  <!-- Main Dashboard Wrapper (Shifts Left When Drawer Opens) -->
+  <div id="mainDashboardContent" class="dashboard-main-content">
+    
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <a href="dashboard.html" class="logo-link">
+        <div class="logo-box">PA</div>
+        <span>PACFAS <small class="role-badge">Attorney Workspace</small></span>
+        </a>
+      </div>
+      <nav class="nav-links">
+        <span id="userDisplayName" class="user-greeting">Welcome, Attorney</span>
+        <button id="logoutBtn" class="btn-secondary">Logout</button>
+        <button id="themeToggleBtn" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem; cursor: pointer;">
+          <span id="themeIcon">☀️</span>
+          <span id="themeText" style="font-size: 0.75rem;">Light</span>
+        </button>
+      </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container dashboard-container">
+      
+      <!-- Quick Statistics Bar -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Active Cases</span>
+          <h2 id="statActiveCases">0</h2>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Pending Hearings</span>
+          <h2 id="statPendingHearings">0</h2>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Documents</span>
+          <h2 id="statTotalDocs">0</h2>
+        </div>
+      </section>
+
+      <!-- Action Toolbar -->
+      <section class="toolbar-card">
+        <div class="toolbar-left">
+          <input type="text" id="caseSearchInput" placeholder="Search case title or number...">
+          <select id="caseStatusSelect">
+            <option value="All">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Pending">Pending</option>
+            <option value="Closed">Closed</option>
+          </select>
+        </div>
+        <button id="btnCreateCase" class="btn-primary">+ Create New Case</button>
+      </section>
+
+      <!-- Cases Table Section -->
+      <section class="card table-card">
+        <div class="card-header-flex">
+          <h3>Managed Case Files</h3>
+          <span id="caseCountBadge" class="badge">0 Cases</span>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Case Number</th>
+                <th>Title</th>
+                <th>Client</th>
+                <th>Status</th>
+                <th>Filing Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="casesTableBody">
+              <tr>
+                <td colspan="6" class="text-center">Loading case files...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Drawer Semi-Transparent Backdrop -->
+  <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
+
+  <!-- Slide-Over Side Drawer Container -->
+  <aside id="createCaseDrawer" class="side-drawer">
+    <div class="drawer-header">
+      <div>
+        <h2>Create New Legal Case</h2>
+        <p class="subtitle">Enter the details to register a new case file into the archive.</p>
+      </div>
+      <button id="closeCaseDrawerBtn" class="drawer-close">&times;</button>
+    </div>
+
+    <div id="drawerErrorBanner" class="error-banner hidden"></div>
+
+    <form id="createCaseForm" class="drawer-form">
+      <div class="form-group">
+        <label for="caseNumberInput">Case Number / Reference ID</label>
+        <input type="text" id="caseNumberInput" required placeholder="e.g., CV-2026-0891">
+      </div>
+
+      <div class="form-group">
+        <label for="caseTitleInput">Case Title</label>
+        <input type="text" id="caseTitleInput" required placeholder="e.g., People vs. Santos">
+      </div>
+
+      <div class="form-group">
+        <label for="clientNameInput">Client Full Name</label>
+        <input type="text" id="clientNameInput" required placeholder="John Doe">
+      </div>
+
+      <div class="form-group">
+        <label for="caseStatusSelectInput">Initial Status</label>
+        <select id="caseStatusSelectInput">
+          <option value="Active">Active</option>
+          <option value="Pending">Pending</option>
+          <option value="Closed">Closed</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="caseDescriptionInput">Case Description / Notes</label>
+        <textarea id="caseDescriptionInput" rows="3" placeholder="Brief case overview or initial facts..."></textarea>
+      </div>
+
+      <div class="drawer-actions">
+        <button type="button" id="cancelDrawerBtn" class="btn-secondary">Cancel</button>
+        <button type="submit" class="btn-primary">Save Case Record</button>
+      </div>
+    </form>
+  </aside>
+
+  <!-- JS Dependencies -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
