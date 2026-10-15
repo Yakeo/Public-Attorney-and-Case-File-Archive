@@ -120,6 +120,13 @@ development stage they represent.
 ### Changed
 - `processOCRInBackground` now handles both text-based and scanned PDFs.
 
+## v1.8.0 — Admin Attorney UI
+**Date:** 2026-10-16
+### Added
+- `admin.html` + `admin.js`: admin form to create attorneys and directory listing.
+### Notes
+- Secure download UI and advanced search UI still pending.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).
