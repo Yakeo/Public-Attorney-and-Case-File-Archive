@@ -146,6 +146,14 @@ development stage they represent.
 ### Changed
 - Admin link hidden for non-admin users.
 
+## v2.1.0 — Polish (Role Gating + Public Case Lookup)
+**Date:** 2026-10-16
+### Added
+- `public-cases.html` for public case lookup.
+- Role-based UI gating (admin link, create case, clients link, assign/link forms).
+### Notes
+- Remaining: automated tests, cloud/S3 storage.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).
