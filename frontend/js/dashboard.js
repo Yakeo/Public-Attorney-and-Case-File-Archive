@@ -44,6 +44,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const userRes = await apiRequest('/auth/me');
       if (userRes.data) {
         const fullName = userRes.data.full_name || 'Clara Vance';
+        const adminLink = document.querySelector('a[href="admin.html"]');
+        if (adminLink && userRes.data.role_id !== 1) adminLink.style.display = 'none';
         if (userDisplayName) userDisplayName.textContent = `Atty. ${fullName}`;
 
         const avatarCircle = document.querySelector('.avatar-circle');
