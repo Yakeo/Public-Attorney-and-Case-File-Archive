@@ -97,6 +97,14 @@ development stage they represent.
 - Scanned/image-only PDF OCR still unsupported.
 - Client/assignment frontend still pending.
 
+## v1.5.0 — Admin Attorney CRUD
+**Date:** 2026-10-16
+### Added
+- Admin-only attorney management endpoints: `POST /api/v1/users` (create), `PATCH /api/v1/users/:id`, `DELETE /api/v1/users/:id` (soft-deactivate).
+- `createAttorney` creates linked user_account (role Attorney) + attorney profile.
+### Notes
+- Public case-lookup UI, advanced search, secure downloads still pending.
+
 ## Known Limitations (current release)
 1. Scanned/image-only PDFs are not OCR-searchable (text-based PDFs + images only).
 2. Hearing schedule conflict prevention is now enforced (admin override available).

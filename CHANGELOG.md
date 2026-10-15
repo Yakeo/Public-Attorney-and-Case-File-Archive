@@ -2,6 +2,16 @@
 
 All notable changes to the Attorney Directory and Case File Archive System (PACFAS) are documented here.
 
+## [1.5.0] - 2026-10-16
+
+### Added
+- Admin attorney CRUD: create/update/deactivate attorney records (admin role required).
+
+## [1.4.0] - 2026-10-16
+
+### Added
+- Slice A frontend: client profiles page, case counsel/clients panels.
+
 ## [1.3.0] - 2026-10-16
 
 ### Added
