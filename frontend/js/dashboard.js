@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const caseCountBadge = document.getElementById('caseCountBadge');
   const dashSearchInput = document.getElementById('caseSearchInput');
   const dashStatusFilter = document.getElementById('caseStatusSelect');
+  const dashCategoryFilter = document.getElementById('caseCategorySelect');
+  const dashPriorityFilter = document.getElementById('casePrioritySelect');
 
   // Stats Elements
   const statActiveCases = document.getElementById('statActiveCases');
@@ -59,7 +61,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function refreshCases() {
     try {
-      const response = await apiRequest('/cases');
+      const params = new URLSearchParams();
+      const q = dashSearchInput ? dashSearchInput.value.trim() : '';
+      const status = dashStatusFilter ? dashStatusFilter.value : 'All';
+      const category = dashCategoryFilter ? dashCategoryFilter.value : 'All';
+      const priority = dashPriorityFilter ? dashPriorityFilter.value : 'All';
+      if (q) params.append('q', q);
+      if (status && status !== 'All') params.append('status', status);
+      if (category && category !== 'All') params.append('category', category);
+      if (priority && priority !== 'All') params.append('priority', priority);
+
+      const endpoint = params.toString() ? `/cases?${params.toString()}` : '/cases';
+      const response = await apiRequest(endpoint);
       localCases = response.data || [];
 
       updateStats(localCases);
@@ -83,16 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderCasesTable(cases) {
     if (!casesTableBody) return;
 
-    const query = dashSearchInput ? dashSearchInput.value.toLowerCase().trim() : '';
-    const statusFilter = dashStatusFilter ? dashStatusFilter.value : 'All';
-
-    const filtered = cases.filter(c => {
-      const matchesQuery = (c.case_number && c.case_number.toLowerCase().includes(query)) || 
-                           (c.title && c.title.toLowerCase().includes(query)) || 
-                           (c.client_name && c.client_name.toLowerCase().includes(query));
-      const matchesStatus = statusFilter === 'All' || c.status === statusFilter;
-      return matchesQuery && matchesStatus;
-    });
+    const filtered = cases;
 
     if (caseCountBadge) {
       caseCountBadge.textContent = `${filtered.length} Cases`;
@@ -121,8 +125,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     `).join('');
   }
 
-  if (dashSearchInput) dashSearchInput.addEventListener('input', () => renderCasesTable(localCases));
-  if (dashStatusFilter) dashStatusFilter.addEventListener('change', () => renderCasesTable(localCases));
+  if (dashSearchInput) dashSearchInput.addEventListener('input', () => refreshCases());
+  if (dashStatusFilter) dashStatusFilter.addEventListener('change', () => refreshCases());
+  if (dashCategoryFilter) dashCategoryFilter.addEventListener('change', () => refreshCases());
+  if (dashPriorityFilter) dashPriorityFilter.addEventListener('change', () => refreshCases());
 
   // --- Drawer Control Functions ---
   function openDrawer() {
