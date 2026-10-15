@@ -5,6 +5,7 @@ const path = require('path');
 const db = require('../config/db');
 const catchAsync = require('../utils/catchAsync');
 const CustomError = require('../utils/customError');
+const { logAction, getRequestMeta } = require('../utils/auditLog');
 
 const processOCRInBackground = async (documentCode, versionNumber, filePath) => {
   try {

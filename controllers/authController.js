@@ -2,6 +2,7 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const catchAsync = require('../utils/catchAsync');
+const { logAction, getRequestMeta } = require('../utils/auditLog');
 const CustomError = require('../utils/customError');
 
 // 1. Register a new user
@@ -31,6 +32,9 @@ exports.register = catchAsync(async (req, res, next) => {
     'INSERT INTO user_account (username, email, password_hash, role_id) VALUES (?, ?, ?, ?)',
     [username, email, passwordHash, role_id || 2] // Default to standard role
   );
+
+  const metaR = getRequestMeta(req);
+  await logAction({ user_id: result.insertId, event_type: 'CREATE', action_taken: 'Registered user', ...metaR });
 
   res.status(201).json({
     status: 'success',
@@ -71,6 +75,9 @@ exports.login = catchAsync(async (req, res, next) => {
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
   );
+
+  const metaL = getRequestMeta(req);
+  await logAction({ user_id: user.user_id, event_type: 'AUTH', action_taken: 'User login', ...metaL });
 
   res.status(200).json({
     status: 'success',

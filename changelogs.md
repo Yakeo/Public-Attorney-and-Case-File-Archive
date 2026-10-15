@@ -85,9 +85,21 @@ development stage they represent.
 
 ---
 
+## v1.3.0 — Hearing Conflict Prevention + Audit Logging (Slice B)
+**Date:** 2026-10-16
+### Added
+- `utils/auditLog.js` — append-only `user_log` writer (fail-safe, never breaks main flow).
+- Hearing conflict prevention in `createHearing`: blocks booking if any assigned attorney has a hearing within 1 hour (admin override via `override_conflict`).
+- Audit logging calls in auth (register/login), case create, hearing create/update, document upload/version, client create, attorney assignment.
+### Changed
+- `hearingController.createHearing` accepts `attorney_id` and `override_conflict`.
+### Notes
+- Scanned/image-only PDF OCR still unsupported.
+- Client/assignment frontend still pending.
+
 ## Known Limitations (current release)
 1. Scanned/image-only PDFs are not OCR-searchable (text-based PDFs + images only).
-2. Hearing schedule conflict prevention (1-hour attorney buffer) not yet enforced.
+2. Hearing schedule conflict prevention is now enforced (admin override available).
 3. Audit trail (`user_log`) not yet implemented.
 4. Attorney directory is read-only (no admin CRUD).
 5. Client/assignment UI not yet present in the frontend.

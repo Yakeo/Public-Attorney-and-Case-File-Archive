@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const catchAsync = require('../utils/catchAsync');
 const CustomError = require('../utils/customError');
+const { logAction, getRequestMeta } = require('../utils/auditLog');
 
 exports.assignAttorney = catchAsync(async (req, res, next) => {
   const { id } = req.params; // cf_code
@@ -25,6 +26,9 @@ exports.assignAttorney = catchAsync(async (req, res, next) => {
      VALUES (?, ?, ?, ?)`,
     [id, attorney_id, role_on_case || null, assigned_date || new Date().toISOString().slice(0, 10)]
   );
+
+  const metaA = getRequestMeta(req);
+  await logAction({ user_id: req.user.user_id, event_type: 'CREATE', action_taken: 'Assigned attorney to case', target_cf_code: id, ...metaA });
 
   res.status(201).json({
     status: 'success',
