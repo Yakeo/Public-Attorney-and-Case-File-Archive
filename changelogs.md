@@ -154,6 +154,16 @@ development stage they represent.
 ### Notes
 - Remaining: automated tests, cloud/S3 storage.
 
+## v2.2.0 — UI Polish + User Manual
+**Date:** 2026-10-16
+### Added
+- `USER_MANUAL.md` (installation, prerequisites, feature guide, troubleshooting).
+- `toast.js` global toast notifications; replaced alert() calls.
+### Changed
+- Role-based UI gating and public case lookup (already in v2.1.0).
+### Notes
+- Automated tests and cloud storage remain future work.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).
