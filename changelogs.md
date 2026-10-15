@@ -175,6 +175,11 @@ development stage they represent.
 ### Notes
 - Public users can view attorneys, cases, and download documents; CRUD restricted to staff/attorneys/admins.
 
+## v2.4.0 — Sample Data Seeder
+**Date:** 2026-10-16
+### Added
+- `scripts/seed.js` + `npm run seed`: 10 attorneys, 10 cases, documents, hearings, clients.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).

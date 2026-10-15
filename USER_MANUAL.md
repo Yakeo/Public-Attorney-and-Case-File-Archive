@@ -67,6 +67,12 @@ JWT_SECRET=change_this_to_a_long_random_string
 JWT_EXPIRES_IN=24h
 ```
 
+### 3.4.1 (Optional) Seed sample data
+```bash
+npm run seed
+```
+This inserts 10 attorneys, 10 cases, sample documents, hearings, and 5 clients.
+
 ### 3.5 Run the server
 ```bash
 npm start          # production
