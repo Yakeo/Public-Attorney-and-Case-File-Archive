@@ -134,6 +134,13 @@ development stage they represent.
 ### Notes
 - Advanced search UI and public case-lookup UI remain basic.
 
+## v2.0.0 — Advanced Search UI
+**Date:** 2026-10-16
+### Added
+- Server-side filters wired to dashboard (status, category, priority, text).
+### Notes
+- Public case-lookup UI already available via attorney profile.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).

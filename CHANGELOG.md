@@ -2,6 +2,11 @@
 
 All notable changes to the Attorney Directory and Case File Archive System (PACFAS) are documented here.
 
+## [2.0.0] - 2026-10-16
+
+### Added
+- Advanced case search UI with server-side filters.
+
 ## [1.9.0] - 2026-10-16
 
 ### Added

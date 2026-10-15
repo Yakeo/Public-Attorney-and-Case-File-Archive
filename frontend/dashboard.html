@@ -55,9 +55,23 @@
           <input type="text" id="caseSearchInput" placeholder="Search case title or number...">
           <select id="caseStatusSelect">
             <option value="All">All Statuses</option>
-            <option value="Active">Active</option>
-            <option value="Pending">Pending</option>
-            <option value="Closed">Closed</option>
+            <option value="ACTIVE">Active</option>
+            <option value="PENDING">Pending</option>
+            <option value="CLOSED">Closed</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+          <select id="caseCategorySelect">
+            <option value="All">All Categories</option>
+            <option value="CIVIL">Civil</option>
+            <option value="CRIMINAL">Criminal</option>
+            <option value="CORPORATE">Corporate</option>
+          </select>
+          <select id="casePrioritySelect">
+            <option value="All">All Priorities</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent</option>
           </select>
         </div>
         <a href="clients.html" class="btn-secondary" style="text-decoration:none;">Clients</a>
