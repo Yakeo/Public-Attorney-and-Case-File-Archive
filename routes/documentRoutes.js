@@ -7,6 +7,9 @@ const { authenticateToken } = require('../middleware/auth'); // Fixed path and e
 // Apply authentication middleware to all document routes
 router.use(authenticateToken);
 
+// 0. List documents (optionally by case_id)
+router.get('/', documentController.listDocuments);
+
 // 1. Full-text search across extracted OCR text
 router.get('/search', documentController.searchDocumentText);
 

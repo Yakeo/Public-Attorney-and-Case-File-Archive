@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
@@ -16,6 +17,9 @@ const CustomError = require('./utils/customError');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
+
+// CORS for API testing / frontend dev
+app.use(cors());
 const PORT = process.env.PORT || 5000;
 
 // Body parsing middleware
@@ -36,6 +40,9 @@ app.get('/health', (req, res) => {
 // API Route Mounts (Versioned /api/v1 standards)
 app.use('/api/v1/auth', require('./routes/authRoutes'));
 app.use('/api/v1/cases', require('./routes/caseRoutes'));
+app.use('/api/v1/clients', require('./routes/clientRoutes'));
+app.use('/api/v1/users', require('./routes/attorneyRoutes'));
+app.use('/api/v1/attorneys', require('./routes/attorneyRoutes'));
 app.use('/api/v1/hearings', require('./routes/hearingRoutes'));
 app.use('/api/v1/documents', require('./routes/documentRoutes'));
 
@@ -63,10 +70,3 @@ process.on('unhandledRejection', (err) => {
   });
 });
 
-// Native Express error handler
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(err.status || 500).json({
-        error: err.message || 'An unexpected backend error occurred.'
-    });
-});
