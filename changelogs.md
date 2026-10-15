@@ -141,6 +141,11 @@ development stage they represent.
 ### Notes
 - Public case-lookup UI already available via attorney profile.
 
+## v2.0.1 — Admin Link Gating
+**Date:** 2026-10-16
+### Changed
+- Admin link hidden for non-admin users.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).
