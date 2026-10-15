@@ -81,7 +81,7 @@ development stage they represent.
 - `routes/caseRoutes.js`, `routes/attorneyRoutes.js`, `server.js` updated.
 ### Notes
 - Hearing-conflict prevention and audit logging remain pending (Slice B).
-- Scanned/image-only PDF OCR remains unsupported (documented limitation).
+- Scanned/image-only PDF OCR now supported via rasterize + Tesseract fallback.
 
 ---
 
@@ -111,10 +111,17 @@ development stage they represent.
 - Server-side case filters on `GET /api/v1/cases` (q, category, priority, status, attorney).
 - Secure document download: `GET /api/v1/documents/:id/download` (auth required).
 ### Notes
-- Scanned/image-only PDF OCR remains unsupported (documented limitation).
+- Scanned/image-only PDF OCR now supported via rasterize + Tesseract fallback.
+
+## v1.7.0 — Scanned PDF OCR Support
+**Date:** 2026-10-16
+### Added
+- Hybrid PDF OCR: text extraction first, rasterize + Tesseract fallback for scanned/image-only PDFs.
+### Changed
+- `processOCRInBackground` now handles both text-based and scanned PDFs.
 
 ## Known Limitations (current release)
-1. Scanned/image-only PDFs are not OCR-searchable (text-based PDFs + images only).
+1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).
 3. Audit trail (`user_log`) not yet implemented.
 4. Attorney directory is read-only (no admin CRUD).

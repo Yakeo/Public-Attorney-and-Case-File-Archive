@@ -1,5 +1,6 @@
 const Tesseract = require('tesseract.js');
 const pdfParse = require('pdf-parse');
+const { pdfToPng } = require('pdf-to-png-converter');
 const fs = require('fs');
 const path = require('path');
 const db = require('../config/db');
@@ -12,10 +13,32 @@ const processOCRInBackground = async (documentCode, versionNumber, filePath) => 
     let extractedText = '';
 
     if (String(filePath).toLowerCase().endsWith('.pdf')) {
-      // PDF text extraction (text-based PDFs)
+      // 1. Try embedded text extraction (text-based PDFs)
       const dataBuffer = fs.readFileSync(filePath);
       const parsed = await pdfParse(dataBuffer);
-      extractedText = parsed.text || '';
+      extractedText = (parsed.text || '').trim();
+
+      // 2. Fallback: rasterize pages and OCR (scanned/image-only PDFs)
+      if (extractedText.length < 50) {
+        try {
+          const pages = await pdfToPng(filePath, { verbosityLevel: 0 });
+          const ocrParts = [];
+          let worker = null;
+          try {
+            worker = await Tesseract.createWorker('eng');
+            for (const page of pages) {
+              const ret = await worker.recognize(page.content);
+              const t = (ret.data.text || '').trim();
+              if (t) ocrParts.push(`--- Page ${page.pageNumber} ---\n${t}`);
+            }
+          } finally {
+            if (worker) await worker.terminate();
+          }
+          extractedText = ocrParts.join('\n\n');
+        } catch (ocrErr) {
+          console.error('[OCR PDF FALLBACK FAILURE]', ocrErr);
+        }
+      }
     } else {
       // Image OCR via Tesseract
       let worker = null;
