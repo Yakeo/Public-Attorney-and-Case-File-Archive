@@ -32,4 +32,6 @@ router.post(
   documentController.uploadNewVersion
 );
 
+router.get('/:document_id/download', documentController.downloadDocument);
+
 module.exports = router;

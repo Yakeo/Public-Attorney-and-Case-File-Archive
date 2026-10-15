@@ -276,3 +276,17 @@ exports.listDocuments = catchAsync(async (req, res, next) => {
     data: rows
   });
 });
+
+
+exports.downloadDocument = catchAsync(async (req, res, next) => {
+  const { document_id } = req.params;
+  const [rows] = await db.execute(
+    `SELECT file_path, doc_name FROM document WHERE document_code = ? AND is_deleted = 0`,
+    [document_id]
+  );
+  if (rows.length === 0) return next(new CustomError('Document not found.', 404));
+  const filePath = rows[0].file_path;
+  const fs = require('fs');
+  if (!fs.existsSync(filePath)) return next(new CustomError('File not found on disk.', 404));
+  res.download(filePath, rows[0].doc_name || 'document');
+});
