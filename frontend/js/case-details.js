@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="doc-card">
         <div class="doc-header">
           <strong>${escapeHtml(d.title)}</strong>
-          <a href="#" class="btn-link">View File ↗</a>
+          <a href="/api/v1/documents/${escapeHtml(d.id)}/download" class="btn-link" target="_blank">Download ↗</a>
         </div>
         ${d.ocr_text ? `
           <details class="ocr-container">
