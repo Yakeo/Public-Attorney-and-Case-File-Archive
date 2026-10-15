@@ -6,6 +6,16 @@ const { authenticateToken } = require('../middleware/auth');
 // Protect all hearing endpoints
 router.use(authenticateToken);
 
+// GET /api/v1/hearings?case_id=... -> list by case (convenience)
+router.get('/', (req, res, next) => {
+  if (req.query.case_id) {
+    req.params = req.params || {};
+    req.params.caseId = req.query.case_id;
+    return require('../controllers/hearingController').getHearingsByCase(req, res, next);
+  }
+  res.json({ status: 'success', results: 0, data: [] });
+});
+
 // POST /api/v1/hearings -> Schedule a hearing
 router.post('/', hearingController.createHearing);
 

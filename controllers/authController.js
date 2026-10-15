@@ -79,6 +79,7 @@ exports.login = catchAsync(async (req, res, next) => {
     user: {
       id: user.user_id, // Fixed: mapped to user_id
       username: user.username,
+      full_name: user.username,
       email: user.email,
       role_id: user.role_id
     }
@@ -96,8 +97,9 @@ exports.getProfile = catchAsync(async (req, res, next) => {
     return next(new CustomError('User profile not found.', 404));
   }
 
+  const u = users[0];
   res.status(200).json({
     status: 'success',
-    data: users[0]
+    data: { ...u, full_name: u.username }
   });
 });

@@ -227,7 +227,11 @@ CREATE TABLE IF NOT EXISTS `document_version` (
   `version_id` int(11) NOT NULL AUTO_INCREMENT,
   `document_code` int(11) NOT NULL,
   `version_no` int(11) NOT NULL,
+  `file_name` varchar(255) DEFAULT NULL,
   `file_path` varchar(255) NOT NULL,
+  `file_size` int(11) DEFAULT NULL,
+  `mime_type` varchar(100) DEFAULT NULL,
+  `extracted_text` longtext DEFAULT NULL,
   `uploaded_by` int(11) NOT NULL,
   `uploaded_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`version_id`),
@@ -421,6 +425,69 @@ ALTER TABLE `user_account`
 ALTER TABLE `user_log`
   ADD CONSTRAINT `fk_ul_target_cf` FOREIGN KEY (`target_cf_code`) REFERENCES `case_file` (`cf_code`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_ul_user` FOREIGN KEY (`user_id`) REFERENCES `user_account` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Seed data for lookup tables
+--
+INSERT INTO `role` (`role_id`, `role_name`, `description`) VALUES
+(1, 'Admin', 'System administrator'),
+(2, 'Attorney', 'Legal counsel / attorney'),
+(3, 'Staff', 'Office staff')
+ON DUPLICATE KEY UPDATE role_name=VALUES(role_name);
+
+INSERT INTO `case_category` (`id`, `code`, `label`, `sort_order`) VALUES
+(1, 'CIVIL', 'Civil', 1),
+(2, 'CRIMINAL', 'Criminal', 2),
+(3, 'CORPORATE', 'Corporate', 3)
+ON DUPLICATE KEY UPDATE label=VALUES(label);
+
+INSERT INTO `case_status` (`id`, `code`, `label`, `sort_order`) VALUES
+(1, 'ACTIVE', 'Active', 1),
+(2, 'PENDING', 'Pending', 2),
+(3, 'CLOSED', 'Closed', 3),
+(4, 'ARCHIVED', 'Archived', 4)
+ON DUPLICATE KEY UPDATE label=VALUES(label);
+
+INSERT INTO `case_priority` (`id`, `code`, `label`, `sort_order`) VALUES
+(1, 'LOW', 'Low', 1),
+(2, 'MEDIUM', 'Medium', 2),
+(3, 'HIGH', 'High', 3),
+(4, 'URGENT', 'Urgent', 4)
+ON DUPLICATE KEY UPDATE label=VALUES(label);
+
+INSERT INTO `document_status` (`id`, `code`, `label`, `sort_order`) VALUES
+(1, 'ACTIVE', 'Active', 1),
+(2, 'SUPERSEDED', 'Superseded', 2),
+(3, 'ARCHIVED', 'Archived', 3)
+ON DUPLICATE KEY UPDATE label=VALUES(label);
+
+INSERT INTO `hearing_status` (`id`, `code`, `label`, `sort_order`) VALUES
+(1, 'SCHEDULED', 'SCHEDULED', 1),
+(2, 'COMPLETED', 'COMPLETED', 2),
+(3, 'POSTPONED', 'POSTPONED', 3),
+(4, 'CANCELLED', 'CANCELLED', 4)
+ON DUPLICATE KEY UPDATE label=VALUES(label);
+
+INSERT INTO `specialization` (`specialization_id`, `specialization_name`) VALUES
+(1, 'General Practice'), (2, 'Corporate'), (3, 'Criminal'), (4, 'Civil')
+ON DUPLICATE KEY UPDATE specialization_name=VALUES(specialization_name);
+
+
+--
+-- Seed attorneys (linked to user accounts) for the public directory
+--
+INSERT INTO `user_account` (`user_id`, `role_id`, `username`, `email`, `password_hash`, `is_active`, `created_at`, `updated_at`) VALUES
+(101, 2, 'clara.vance', 'clara.vance@pacfas.gov', '$2b$10$29FCRFnCpVLlgDry.6w7/O/BNTorZYljXC9eDn5so0/U.js9eitcW', 1, NOW(), NOW()),
+(102, 2, 'marcus.reyes', 'm.reyes@pacfas.gov', '$2b$10$29FCRFnCpVLlgDry.6w7/O/BNTorZYljXC9eDn5so0/U.js9eitcW', 1, NOW(), NOW()),
+(103, 2, 'elena.rostova', 'elena@pacfas.gov', '$2b$10$29FCRFnCpVLlgDry.6w7/O/BNTorZYljXC9eDn5so0/U.js9eitcW', 1, NOW(), NOW())
+ON DUPLICATE KEY UPDATE username=VALUES(username);
+
+INSERT INTO `attorney` (`attorney_id`, `user_id`, `fname`, `lname`, `specialization_id`, `bar_number`, `created_at`, `updated_at`) VALUES
+('A0001', 101, 'Clara', 'Vance', 2, 'BAR-2018-9921', NOW(), NOW()),
+('A0002', 102, 'Marcus', 'Reyes', 3, 'BAR-2014-4412', NOW(), NOW()),
+('A0003', 103, 'Elena', 'Rostova', 4, 'BAR-2021-1055', NOW(), NOW())
+ON DUPLICATE KEY UPDATE fname=VALUES(fname);
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
