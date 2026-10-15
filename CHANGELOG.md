@@ -2,6 +2,11 @@
 
 All notable changes to the Attorney Directory and Case File Archive System (PACFAS) are documented here.
 
+## [1.7.0] - 2026-10-16
+
+### Added
+- Scanned/image-only PDF OCR via rasterize + Tesseract fallback.
+
 ## [1.6.0] - 2026-10-16
 
 ### Added
