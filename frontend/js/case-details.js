@@ -27,6 +27,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   const uploadError = document.getElementById('uploadError');
   const submitUploadBtn = document.getElementById('submitUploadBtn');
 
+  (async () => {
+    try {
+      const u = await apiRequest('/auth/me');
+      const isStaffOrAdmin = u.data && (u.data.role_id === 1 || u.data.role_id === 3);
+      if (!isStaffOrAdmin) {
+        const aForm = document.getElementById('assignAttorneyForm');
+        const cForm = document.getElementById('linkClientForm');
+        if (aForm) aForm.style.display = 'none';
+        if (cForm) cForm.style.display = 'none';
+      }
+    } catch (e) { /* ignore */ }
+  })();
+
   initCaseView();
 
   async function initCaseView() {
@@ -149,7 +162,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       try {
         if (uploadModal) uploadModal.classList.add('hidden');
-        initCaseView();
+        (async () => {
+    try {
+      const u = await apiRequest('/auth/me');
+      const isStaffOrAdmin = u.data && (u.data.role_id === 1 || u.data.role_id === 3);
+      if (!isStaffOrAdmin) {
+        const aForm = document.getElementById('assignAttorneyForm');
+        const cForm = document.getElementById('linkClientForm');
+        if (aForm) aForm.style.display = 'none';
+        if (cForm) cForm.style.display = 'none';
+      }
+    } catch (e) { /* ignore */ }
+  })();
+
+  initCaseView();
       } catch (err) {
         if (uploadError) {
           uploadError.textContent = err.message;
@@ -215,7 +241,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!attorney_id) return;
       try {
         await apiRequest(`/cases/${caseId}/attorneys`, 'POST', { attorney_id, role_on_case });
-        initCaseView();
+        (async () => {
+    try {
+      const u = await apiRequest('/auth/me');
+      const isStaffOrAdmin = u.data && (u.data.role_id === 1 || u.data.role_id === 3);
+      if (!isStaffOrAdmin) {
+        const aForm = document.getElementById('assignAttorneyForm');
+        const cForm = document.getElementById('linkClientForm');
+        if (aForm) aForm.style.display = 'none';
+        if (cForm) cForm.style.display = 'none';
+      }
+    } catch (e) { /* ignore */ }
+  })();
+
+  initCaseView();
       } catch (err) {
         alert(err.message || 'Failed to assign attorney.');
       }
@@ -230,7 +269,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!client_id) return;
       try {
         await apiRequest(`/clients/${client_id}/cases`, 'POST', { cf_code: caseId, client_role });
-        initCaseView();
+        (async () => {
+    try {
+      const u = await apiRequest('/auth/me');
+      const isStaffOrAdmin = u.data && (u.data.role_id === 1 || u.data.role_id === 3);
+      if (!isStaffOrAdmin) {
+        const aForm = document.getElementById('assignAttorneyForm');
+        const cForm = document.getElementById('linkClientForm');
+        if (aForm) aForm.style.display = 'none';
+        if (cForm) cForm.style.display = 'none';
+      }
+    } catch (e) { /* ignore */ }
+  })();
+
+  initCaseView();
       } catch (err) {
         alert(err.message || 'Failed to link client.');
       }

@@ -46,6 +46,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fullName = userRes.data.full_name || 'Clara Vance';
         const adminLink = document.querySelector('a[href="admin.html"]');
         if (adminLink && userRes.data.role_id !== 1) adminLink.style.display = 'none';
+        const clientsLink = document.querySelector('a[href="clients.html"]');
+        const createBtn = document.getElementById('btnCreateCase');
+        const isStaffOrAdmin = userRes.data.role_id === 1 || userRes.data.role_id === 3;
+        if (clientsLink && !isStaffOrAdmin) clientsLink.style.display = 'none';
+        if (createBtn && !isStaffOrAdmin) createBtn.style.display = 'none';
         if (userDisplayName) userDisplayName.textContent = `Atty. ${fullName}`;
 
         const avatarCircle = document.querySelector('.avatar-circle');
