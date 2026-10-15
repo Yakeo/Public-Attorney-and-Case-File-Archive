@@ -18,7 +18,7 @@ const resolveStatusId = async (status) => {
 const shapeCase = (row) => ({
   ...row,
   id: row.cf_code,
-  case_number: row.cf_code,
+  case_number: `${row.category_code || 'CASE'}-${row.creation_date ? new Date(row.creation_date).getFullYear() : new Date().getFullYear()}-${String(row.cf_code).padStart(4, '0')}`,
   title: row.cf_name,
   client_name: row.created_by_user || null,
   status: row.status_label || row.status_code || 'Active',
@@ -50,13 +50,18 @@ exports.createCase = catchAsync(async (req, res, next) => {
     [name, description || null, resolvedCategoryId, resolvedStatusId, resolvedPriorityId, filing_date || null, created_by]
   );
 
+  const [catRows] = await db.execute('SELECT code FROM case_category WHERE id = ?', [resolvedCategoryId]);
+  const catCode = (catRows[0] && catRows[0].code) || 'CASE';
+  const year = new Date().getFullYear();
+  const caseNumber = `${catCode}-${year}-${String(result.insertId).padStart(4, '0')}`;
+
   res.status(201).json({
     status: 'success',
     message: 'Case file created successfully.',
     data: {
       case_id: result.insertId,
       cf_code: result.insertId,
-      case_number: result.insertId,
+      case_number: caseNumber,
       title: name
     }
   });

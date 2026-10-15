@@ -180,6 +180,14 @@ development stage they represent.
 ### Added
 - `scripts/seed.js` + `npm run seed`: 10 attorneys, 10 cases, documents, hearings, clients.
 
+## v2.5.0 — Case Number Generation
+**Date:** 2026-10-16
+### Added
+- Auto-generated case numbers in format `TYPE-YEAR-XXXX` based on selected category.
+- Live preview in create-case form.
+### Changed
+- `case_number` now derived from category + year + cf_code.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).
