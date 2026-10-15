@@ -1,11 +1,4 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  let token = localStorage.getItem('jwtToken') || localStorage.getItem('token');
-  if (!token) {
-    token = 'mock-jwt-token-xyz123';
-    localStorage.setItem('jwtToken', token);
-    localStorage.setItem('token', token);
-  }
-
   const urlParams = new URLSearchParams(window.location.search);
   const caseId = urlParams.get('id') || '101';
 

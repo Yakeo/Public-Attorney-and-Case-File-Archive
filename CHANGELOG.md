@@ -2,6 +2,11 @@
 
 All notable changes to the Attorney Directory and Case File Archive System (PACFAS) are documented here.
 
+## [2.3.0] - 2026-10-16
+
+### Added
+- Role separation: normal users (read-only) vs attorneys/staff/admins (CRUD).
+
 ## [2.2.0] - 2026-10-16
 
 ### Added

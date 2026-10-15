@@ -432,7 +432,8 @@ ALTER TABLE `user_log`
 INSERT INTO `role` (`role_id`, `role_name`, `description`) VALUES
 (1, 'Admin', 'System administrator'),
 (2, 'Attorney', 'Legal counsel / attorney'),
-(3, 'Staff', 'Office staff')
+(3, 'Staff', 'Office staff'),
+(5, 'User', 'Registered public user (read-only)')
 ON DUPLICATE KEY UPDATE role_name=VALUES(role_name);
 
 INSERT INTO `case_category` (`id`, `code`, `label`, `sort_order`) VALUES

@@ -3,7 +3,7 @@ const router = express.Router();
 const caseController = require('../controllers/caseController');
 const caseAssignmentController = require('../controllers/caseAssignmentController');
 const clientController = require('../controllers/clientController');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 // Public, non-confidential case summaries (no auth)
 router.get('/public', caseController.getPublicCases);
@@ -11,7 +11,7 @@ router.get('/public', caseController.getPublicCases);
 // Protect remaining case endpoints
 router.use(authenticateToken);
 
-router.post('/', caseController.createCase);
+router.post('/', authenticateToken, authorizeRoles(1, 3), caseController.createCase);
 router.get('/', caseController.getAllCases);
 router.get('/:id', caseController.getCaseById);
 

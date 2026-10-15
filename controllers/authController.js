@@ -30,7 +30,7 @@ exports.register = catchAsync(async (req, res, next) => {
   // Insert user into DB
   const [result] = await db.execute(
     'INSERT INTO user_account (username, email, password_hash, role_id) VALUES (?, ?, ?, ?)',
-    [username, email, passwordHash, role_id || 2] // Default to standard role
+    [username, email, passwordHash, role_id || 5] // Default to standard user role
   );
 
   const metaR = getRequestMeta(req);

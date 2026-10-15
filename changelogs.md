@@ -164,6 +164,17 @@ development stage they represent.
 ### Notes
 - Automated tests and cloud storage remain future work.
 
+## v2.3.0 — Role Separation & Access Control
+**Date:** 2026-10-16
+### Added
+- Role 5 (User) for registered public users (read-only).
+- Role-based authorization on create/update/upload/client/assignment routes.
+### Changed
+- Registration defaults to User role (not Attorney).
+- Removed auto-mock token injection in frontend.
+### Notes
+- Public users can view attorneys, cases, and download documents; CRUD restricted to staff/attorneys/admins.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).
