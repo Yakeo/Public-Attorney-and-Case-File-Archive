@@ -2,6 +2,11 @@
 
 All notable changes to the Attorney Directory and Case File Archive System (PACFAS) are documented here.
 
+## [2.4.0] - 2026-10-16
+
+### Added
+- Sample data seeder (`npm run seed`).
+
 ## [2.3.0] - 2026-10-16
 
 ### Added
