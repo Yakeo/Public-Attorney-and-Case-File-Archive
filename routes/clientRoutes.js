@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const clientController = require('../controllers/clientController');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 router.use(authenticateToken);
+router.use(authorizeRoles(1, 3));
 
 router.post('/', clientController.createClient);
 router.get('/', clientController.listClients);

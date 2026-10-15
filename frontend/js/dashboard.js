@@ -1,12 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
   // Ensure local session token exists for standalone dev testing
-  let token = localStorage.getItem('jwtToken') || localStorage.getItem('token');
-  if (!token) {
-    token = 'mock-jwt-token-xyz123';
-    localStorage.setItem('jwtToken', token);
-    localStorage.setItem('token', token);
-  }
-
   // DOM Elements
   const userDisplayName = document.getElementById('userDisplayName');
   const casesTableBody = document.getElementById('casesTableBody');

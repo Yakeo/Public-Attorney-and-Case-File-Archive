@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const hearingController = require('../controllers/hearingController');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 // Protect all hearing endpoints
 router.use(authenticateToken);
@@ -17,7 +17,7 @@ router.get('/', (req, res, next) => {
 });
 
 // POST /api/v1/hearings -> Schedule a hearing
-router.post('/', hearingController.createHearing);
+router.post('/', authenticateToken, authorizeRoles(1, 2, 3), hearingController.createHearing);
 
 // GET /api/v1/hearings/calendar?startDate=...&endDate=... -> Fetch hearings for calendar view
 router.get('/calendar', hearingController.getHearingsByDateRange);
@@ -26,6 +26,6 @@ router.get('/calendar', hearingController.getHearingsByDateRange);
 router.get('/case/:caseId', hearingController.getHearingsByCase);
 
 // PATCH /api/v1/hearings/:hearingId -> Update hearing status or details
-router.patch('/:hearingId', hearingController.updateHearing);
+router.patch('/:hearingId', authenticateToken, authorizeRoles(1, 2, 3), hearingController.updateHearing);
 
 module.exports = router;
