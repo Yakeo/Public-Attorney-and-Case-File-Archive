@@ -2,6 +2,21 @@
 
 All notable changes to the Attorney Directory and Case File Archive System (PACFAS) are documented here.
 
+## [1.3.0] - 2026-10-16
+
+### Added
+- **Slice B — Hearing conflict prevention + Audit logging:**
+  - `utils/auditLog.js`: append-only `user_log` writer (fail-safe).
+  - Conflict check in `POST /api/v1/hearings`: blocks if an assigned attorney has a hearing within 1 hour (admin override via `override_conflict`).
+  - Audit log calls across auth, cases, hearings, documents, clients, assignments.
+
+### Changed
+- `hearingController.createHearing` accepts `attorney_id` and `override_conflict`.
+
+### Notes
+- Scanned/image-only PDF OCR still unsupported.
+- Client/assignment frontend still pending.
+
 ## [1.2.0] - 2026-10-16
 
 ### Added

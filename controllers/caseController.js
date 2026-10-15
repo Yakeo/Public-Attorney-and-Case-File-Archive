@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const catchAsync = require('../utils/catchAsync');
 const CustomError = require('../utils/customError');
+const { logAction, getRequestMeta } = require('../utils/auditLog');
 
 // Helper: resolve a status string (e.g. "Active") to a case_status.id
 const resolveStatusId = async (status) => {

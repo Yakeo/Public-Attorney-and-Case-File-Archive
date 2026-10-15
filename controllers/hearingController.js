@@ -1,6 +1,7 @@
 const catchAsync = require('../utils/catchAsync');
 const CustomError = require('../utils/customError');
 const db = require('../config/db');
+const { logAction, getRequestMeta } = require('../utils/auditLog');
 
 const resolveHearingStatusId = async (status) => {
   if (!status) return 1;
@@ -22,10 +23,49 @@ const shapeHearing = (row) => ({
 
 // 1. Schedule a new hearing
 exports.createHearing = catchAsync(async (req, res, next) => {
-  const { case_id, title, hearing_date, court_name, judge_name, remarks, venue, courtroom, hearing_type } = req.body;
+  const { case_id, title, hearing_date, court_name, judge_name, remarks, venue, courtroom, hearing_type, attorney_id, override_conflict } = req.body;
 
   if (!case_id || !title || !hearing_date) {
     return next(new CustomError('Missing required fields: case_id, title, and hearing_date are mandatory.', 400));
+  }
+
+  // Determine assigned attorney(s) for conflict checking
+  let attorneyIds = [];
+  if (attorney_id) {
+    attorneyIds = [attorney_id];
+  } else {
+    const [assigned] = await db.execute(
+      'SELECT attorney_id FROM case_attorney WHERE cf_code = ?',
+      [case_id]
+    );
+    attorneyIds = assigned.map((r) => r.attorney_id);
+  }
+
+  // Hearing conflict prevention: block if any assigned attorney has a hearing within 1 hour
+  if (attorneyIds.length > 0) {
+    const conflicts = [];
+    for (const aid of attorneyIds) {
+      const [rows] = await db.execute(
+        `SELECT h.hearing_id, h.hearing_date, cf.cf_name
+         FROM hearing_schedule h
+         JOIN case_file cf ON h.cf_code = cf.cf_code
+         JOIN case_attorney ca ON cf.cf_code = ca.cf_code
+         WHERE ca.attorney_id = ?
+           AND h.hearing_date BETWEEN DATE_SUB(?, INTERVAL 1 HOUR) AND DATE_ADD(?, INTERVAL 1 HOUR)`,
+        [aid, hearing_date, hearing_date]
+      );
+      if (rows.length > 0) {
+        conflicts.push({ attorney_id: aid, hearings: rows });
+      }
+    }
+
+    const isAdmin = req.user && req.user.role_id === 1;
+    if (conflicts.length > 0 && !(override_conflict && isAdmin)) {
+      return next(new CustomError(
+        'Scheduling conflict: an assigned attorney already has a hearing within 1 hour of the requested time. Admin override required.',
+        409
+      ));
+    }
   }
 
   const statusId = await resolveHearingStatusId(req.body.status);
@@ -46,6 +86,15 @@ exports.createHearing = catchAsync(async (req, res, next) => {
       req.user.user_id
     ]
   );
+
+  const meta = getRequestMeta(req);
+  await logAction({
+    user_id: req.user.user_id,
+    event_type: 'CREATE',
+    action_taken: 'Scheduled hearing',
+    target_cf_code: case_id,
+    ...meta
+  });
 
   res.status(201).json({
     status: 'success',
@@ -122,6 +171,15 @@ exports.updateHearing = catchAsync(async (req, res, next) => {
   if (result.affectedRows === 0) {
     return next(new CustomError('Hearing schedule not found with that ID.', 404));
   }
+
+  const metaU = getRequestMeta(req);
+  await logAction({
+    user_id: req.user.user_id,
+    event_type: 'UPDATE',
+    action_taken: 'Updated hearing',
+    target_cf_code: null,
+    ...metaU
+  });
 
   res.status(200).json({
     status: 'success',

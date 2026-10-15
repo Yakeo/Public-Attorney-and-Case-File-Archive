@@ -2,6 +2,7 @@ const db = require('../config/db');
 const bcrypt = require('bcrypt');
 const catchAsync = require('../utils/catchAsync');
 const CustomError = require('../utils/customError');
+const { logAction, getRequestMeta } = require('../utils/auditLog');
 
 // Ensure a 'Client' role exists (role_id 4)
 const ensureClientRole = async () => {
@@ -41,6 +42,9 @@ exports.createClient = catchAsync(async (req, res, next) => {
     [resolvedUserId, fname, mname || null, lname, birth_date, gender || null, email || null,
      contact_number || null, purok || null, barangay || null, city || null, region || null]
   );
+
+  const metaCl = getRequestMeta(req);
+  await logAction({ user_id: req.user.user_id, event_type: 'CREATE', action_taken: 'Created client profile', ...metaCl });
 
   res.status(201).json({
     status: 'success',
