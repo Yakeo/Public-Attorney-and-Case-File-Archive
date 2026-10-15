@@ -13,6 +13,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const caseMetaDetails = document.getElementById('caseMetaDetails');
   const hearingsList = document.getElementById('hearingsList');
   const documentsList = document.getElementById('documentsList');
+  const attorneysList = document.getElementById('attorneysList');
+  const clientsList = document.getElementById('clientsList');
+  const attorneySelect = document.getElementById('attorneySelect');
+  const clientSelect = document.getElementById('clientSelect');
+  const assignAttorneyForm = document.getElementById('assignAttorneyForm');
+  const linkClientForm = document.getElementById('linkClientForm');
 
   const uploadModal = document.getElementById('uploadModal');
   const openUploadModalBtn = document.getElementById('openUploadModalBtn');
@@ -25,16 +31,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function initCaseView() {
     try {
-      const [caseRes, docsRes, hearingsRes] = await Promise.all([
+      const [caseRes, docsRes, hearingsRes, attsRes, clientsRes, allAttRes, allCliRes] = await Promise.all([
         apiRequest(`/cases/${caseId}`),
         apiRequest(`/documents?case_id=${caseId}`),
-        apiRequest(`/hearings?case_id=${caseId}`)
+        apiRequest(`/hearings?case_id=${caseId}`),
+        apiRequest(`/cases/${caseId}/attorneys`).catch(() => ({ data: [] })),
+        apiRequest(`/cases/${caseId}/clients`).catch(() => ({ data: [] })),
+        apiRequest(`/users/attorneys`).catch(() => ({ data: [] })),
+        apiRequest(`/clients`).catch(() => ({ data: [] }))
       ]);
 
       renderHeader(caseRes.data);
       renderMeta(caseRes.data);
       renderHearings(hearingsRes.data || []);
       renderDocuments(docsRes.data || []);
+      renderAttorneys(attsRes.data || []);
+      renderClients(clientsRes.data || []);
+      populateAttorneySelect(allAttRes.data || []);
+      populateClientSelect(allCliRes.data || []);
     } catch (err) {
       if (caseHeaderCard) caseHeaderCard.innerHTML = `<div class="error-banner">${escapeHtml(err.message)}</div>`;
     }
@@ -146,6 +160,79 @@ document.addEventListener('DOMContentLoaded', async () => {
           submitUploadBtn.disabled = false;
           submitUploadBtn.textContent = 'Upload & Extract Text';
         }
+      }
+    });
+  }
+
+  function renderAttorneys(attorneys) {
+    if (!attorneysList) return;
+    if (!attorneys.length) {
+      attorneysList.innerHTML = `<p class="text-muted">No counsel assigned yet.</p>`;
+      return;
+    }
+    attorneysList.innerHTML = attorneys.map(a => `
+      <div class="doc-card" style="margin-bottom:0.5rem;">
+        <strong>${escapeHtml(a.fname)} ${escapeHtml(a.lname)}</strong>
+        <span class="badge" style="margin-left:0.5rem;">${escapeHtml(a.role_on_case || 'Counsel')}</span>
+        <div class="text-muted text-xs">${escapeHtml(a.specialization_name || '')} ${a.bar_number ? '· ' + escapeHtml(a.bar_number) : ''}</div>
+        <div class="text-muted text-xs">Assigned: ${escapeHtml(a.assigned_date || '')}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderClients(clients) {
+    if (!clientsList) return;
+    if (!clients.length) {
+      clientsList.innerHTML = `<p class="text-muted">No clients linked yet.</p>`;
+      return;
+    }
+    clientsList.innerHTML = clients.map(c => `
+      <div class="doc-card" style="margin-bottom:0.5rem;">
+        <strong>${escapeHtml(c.fname)} ${escapeHtml(c.lname || '')}</strong>
+        <span class="badge" style="margin-left:0.5rem;">${escapeHtml(c.client_role || 'Client')}</span>
+        <div class="text-muted text-xs">${escapeHtml(c.email || '')} ${c.contact_number ? '· ' + escapeHtml(c.contact_number) : ''}</div>
+      </div>
+    `).join('');
+  }
+
+  function populateAttorneySelect(attorneys) {
+    if (!attorneySelect) return;
+    attorneySelect.innerHTML = `<option value="">Select attorney...</option>` +
+      attorneys.map(a => `<option value="${escapeHtml(a.id)}">${escapeHtml(a.full_name)} (${escapeHtml(a.specialization || '')})</option>`).join('');
+  }
+
+  function populateClientSelect(clients) {
+    if (!clientSelect) return;
+    clientSelect.innerHTML = `<option value="">Select client...</option>` +
+      clients.map(c => `<option value="${escapeHtml(c.client_id)}">${escapeHtml(c.fname)} ${escapeHtml(c.lname || '')}</option>`).join('');
+  }
+
+  if (assignAttorneyForm) {
+    assignAttorneyForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const attorney_id = attorneySelect ? attorneySelect.value : '';
+      const role_on_case = document.getElementById('roleOnCaseInput') ? document.getElementById('roleOnCaseInput').value.trim() : '';
+      if (!attorney_id) return;
+      try {
+        await apiRequest(`/cases/${caseId}/attorneys`, 'POST', { attorney_id, role_on_case });
+        initCaseView();
+      } catch (err) {
+        alert(err.message || 'Failed to assign attorney.');
+      }
+    });
+  }
+
+  if (linkClientForm) {
+    linkClientForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const client_id = clientSelect ? clientSelect.value : '';
+      const client_role = document.getElementById('clientRoleInput') ? document.getElementById('clientRoleInput').value.trim() : '';
+      if (!client_id) return;
+      try {
+        await apiRequest(`/clients/${client_id}/cases`, 'POST', { cf_code: caseId, client_role });
+        initCaseView();
+      } catch (err) {
+        alert(err.message || 'Failed to link client.');
       }
     });
   }
