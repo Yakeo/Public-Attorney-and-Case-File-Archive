@@ -2,6 +2,11 @@
 
 All notable changes to the Attorney Directory and Case File Archive System (PACFAS) are documented here.
 
+## [2.5.0] - 2026-10-16
+
+### Added
+- Auto-generated case numbers (TYPE-YEAR-XXXX).
+
 ## [2.4.0] - 2026-10-16
 
 ### Added

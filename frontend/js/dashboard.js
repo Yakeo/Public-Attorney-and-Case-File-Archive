@@ -155,16 +155,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (cancelBtn) cancelBtn.addEventListener('click', closeDrawer);
   if (backdrop) backdrop.addEventListener('click', closeDrawer);
 
+
+  const categorySelectInput = document.getElementById('caseCategorySelectInput');
+  const caseNumberPreview = document.getElementById('caseNumberPreview');
+  const catCodes = { '1': 'CIV', '2': 'CRM', '3': 'CORP' };
+  function updateCaseNumberPreview() {
+    if (!caseNumberPreview || !categorySelectInput) return;
+    const code = catCodes[categorySelectInput.value] || 'CASE';
+    const year = new Date().getFullYear();
+    caseNumberPreview.value = `${code}-${year}-XXXX`;
+  }
+  if (categorySelectInput) {
+    categorySelectInput.addEventListener('change', updateCaseNumberPreview);
+    updateCaseNumberPreview();
+  }
+
   if (createCaseForm) {
     createCaseForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (drawerErrorBanner) drawerErrorBanner.classList.add('hidden');
 
+      const categoryId = document.getElementById('caseCategorySelectInput') ? document.getElementById('caseCategorySelectInput').value : '1';
       const payload = {
-        case_number: document.getElementById('caseNumberInput').value.trim(),
         title: document.getElementById('caseTitleInput').value.trim(),
         client_name: document.getElementById('clientNameInput').value.trim(),
         status: document.getElementById('caseStatusSelectInput').value,
+        category_id: Number(categoryId),
         description: document.getElementById('caseDescriptionInput') ? document.getElementById('caseDescriptionInput').value.trim() : ''
       };
 
