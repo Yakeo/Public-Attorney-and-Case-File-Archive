@@ -439,7 +439,15 @@ ON DUPLICATE KEY UPDATE role_name=VALUES(role_name);
 INSERT INTO `case_category` (`id`, `code`, `label`, `sort_order`) VALUES
 (1, 'CIVIL', 'Civil', 1),
 (2, 'CRIMINAL', 'Criminal', 2),
-(3, 'CORPORATE', 'Corporate', 3)
+(3, 'CORPORATE', 'Corporate / Commercial', 3),
+(4, 'FAMILY', 'Family', 4),
+(5, 'LABOR', 'Labor / Employment', 5),
+(6, 'PROPERTY', 'Property / Real Estate', 6),
+(7, 'TAX', 'Tax', 7),
+(8, 'IP', 'Intellectual Property', 8),
+(9, 'IMMIGRATION', 'Immigration', 9),
+(10, 'ADMIN', 'Administrative', 10),
+(11, 'ENVIRONMENTAL', 'Environmental', 11)
 ON DUPLICATE KEY UPDATE label=VALUES(label);
 
 INSERT INTO `case_status` (`id`, `code`, `label`, `sort_order`) VALUES
@@ -470,7 +478,18 @@ INSERT INTO `hearing_status` (`id`, `code`, `label`, `sort_order`) VALUES
 ON DUPLICATE KEY UPDATE label=VALUES(label);
 
 INSERT INTO `specialization` (`specialization_id`, `specialization_name`) VALUES
-(1, 'General Practice'), (2, 'Corporate'), (3, 'Criminal'), (4, 'Civil')
+(1, 'General Practice'),
+(2, 'Corporate / Commercial Law'),
+(3, 'Criminal Defense'),
+(4, 'Civil Litigation'),
+(5, 'Family Law'),
+(6, 'Labor & Employment Law'),
+(7, 'Tax Law'),
+(8, 'Intellectual Property'),
+(9, 'Immigration Law'),
+(10, 'Real Estate & Property'),
+(11, 'Environmental Law'),
+(12, 'Administrative Law')
 ON DUPLICATE KEY UPDATE specialization_name=VALUES(specialization_name);
 
 

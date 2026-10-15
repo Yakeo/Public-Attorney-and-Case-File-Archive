@@ -5,10 +5,10 @@ const path = require('path');
 
 const firstNames = ['Juan','Maria','Jose','Ana','Pedro','Lucia','Carlos','Sofia','Miguel','Isabel','Ramon','Carmen','Diego','Elena','Luis','Patricia','Fernando','Rosa','Antonio','Teresa'];
 const lastNames = ['Dela Cruz','Santos','Reyes','Garcia','Mendoza','Torres','Flores','Gonzales','Bautista','Villanueva','Ramos','Aquino','Castro','Lopez','Hernandez','Morales','Ortiz','Ramirez','Gutierrez','Jimenez'];
-const specs = [1,2,3,4];
+const specs = [1,2,3,4,5,6,7,8,9,10,11,12];
 const statuses = [1,2,3,4];
 const priorities = [1,2,3,4];
-const categories = [1,2,3];
+const categories = [1,2,3,4,5,6,7,8,9,10,11];
 
 const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;

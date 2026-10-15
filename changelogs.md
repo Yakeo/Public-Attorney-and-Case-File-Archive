@@ -188,6 +188,14 @@ development stage they represent.
 ### Changed
 - `case_number` now derived from category + year + cf_code.
 
+## v2.6.0 — Expanded Case Types & Specializations
+**Date:** 2026-10-16
+### Added
+- 11 case categories (Civil, Criminal, Corporate/Commercial, Family, Labor, Property, Tax, IP, Immigration, Administrative, Environmental).
+- 12 attorney specializations (real-life practice areas).
+### Changed
+- Seed script and UI dropdowns updated.
+
 ## Known Limitations (current release)
 1. (Resolved) Scanned/image-only PDFs are now OCR-searchable.
 2. Hearing schedule conflict prevention is now enforced (admin override available).

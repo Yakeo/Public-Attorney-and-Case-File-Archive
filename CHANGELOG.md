@@ -2,6 +2,11 @@
 
 All notable changes to the Attorney Directory and Case File Archive System (PACFAS) are documented here.
 
+## [2.6.0] - 2026-10-16
+
+### Added
+- Expanded case types and attorney specializations.
+
 ## [2.5.0] - 2026-10-16
 
 ### Added

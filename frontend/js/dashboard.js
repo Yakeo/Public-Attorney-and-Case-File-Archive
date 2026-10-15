@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const categorySelectInput = document.getElementById('caseCategorySelectInput');
   const caseNumberPreview = document.getElementById('caseNumberPreview');
-  const catCodes = { '1': 'CIV', '2': 'CRM', '3': 'CORP' };
+  const catCodes = { '1': 'CIV', '2': 'CRM', '3': 'CORP', '4': 'FAM', '5': 'LAB', '6': 'PROP', '7': 'TAX', '8': 'IP', '9': 'IMM', '10': 'ADM', '11': 'ENV' };
   function updateCaseNumberPreview() {
     if (!caseNumberPreview || !categorySelectInput) return;
     const code = catCodes[categorySelectInput.value] || 'CASE';
