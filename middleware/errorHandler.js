@@ -5,9 +5,9 @@ const errorHandler = async (err, req, res, next) => {
 
   // 1. FAIL-SAFE CLEANUP: Remove orphaned uploaded file(s) from disk on failure
   const filesToDelete = [];
-  if (req.file && req.file.path) {
+  if (!req.uploadCommitted && req.file && req.file.path) {
     filesToDelete.push(req.file.path);
-  } else if (req.files) {
+  } else if (!req.uploadCommitted && req.files) {
     if (Array.isArray(req.files)) {
       req.files.forEach((f) => filesToDelete.push(f.path));
     } else if (typeof req.files === 'object') {
@@ -42,7 +42,7 @@ const errorHandler = async (err, req, res, next) => {
   }
 
   // 3. MULTER ERROR FORMATTING
-  let statusCode = err.statusCode || 500;
+  let statusCode = err.statusCode || (err.type === 'entity.parse.failed' ? 400 : 500);
   let message = err.isOperational ? err.message : 'Internal Server Error during processing.';
 
   if (err.name === 'MulterError') {

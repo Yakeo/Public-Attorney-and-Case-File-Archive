@@ -121,7 +121,7 @@ exports.getHearingsByCase = catchAsync(async (req, res, next) => {
       h.hearing_id,
       h.cf_code AS case_id,
       cf.cf_name AS case_name,
-      h.title,
+      h.hearing_type AS title,
       h.hearing_date,
       h.venue,
       h.courtroom,
@@ -211,6 +211,7 @@ exports.getHearingsByDateRange = catchAsync(async (req, res, next) => {
       h.remarks
     FROM hearing_schedule h
     JOIN case_file cf ON h.cf_code = cf.cf_code
+    LEFT JOIN hearing_status hs ON h.status_id = hs.id
   `;
 
   const params = [];

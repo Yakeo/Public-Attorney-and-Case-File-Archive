@@ -78,8 +78,11 @@ exports.createAttorney = catchAsync(async (req, res, next) => {
   if (!fname || !lname || !email) {
     return next(new CustomError('fname, lname, and email are required.', 400));
   }
+  if (typeof password !== 'string' || password.length < 12) {
+    return next(new CustomError('Provide an initial password of at least 12 characters.', 400));
+  }
   const uname = username || email.split('@')[0];
-  const hash = await bcrypt.hash(password || 'password123', 10);
+  const hash = await bcrypt.hash(password, 10);
 
   const conn = await db.getConnection();
   try {

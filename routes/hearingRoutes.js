@@ -4,7 +4,7 @@ const hearingController = require('../controllers/hearingController');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 // Protect all hearing endpoints
-router.use(authenticateToken);
+router.use(authenticateToken, authorizeRoles(1, 2, 3));
 
 // GET /api/v1/hearings?case_id=... -> list by case (convenience)
 router.get('/', (req, res, next) => {

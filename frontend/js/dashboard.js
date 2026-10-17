@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isStaffOrAdmin = userRes.data.role_id === 1 || userRes.data.role_id === 3;
         if (clientsLink && !isStaffOrAdmin) clientsLink.style.display = 'none';
         if (createBtn && !isStaffOrAdmin) createBtn.style.display = 'none';
-        if (userDisplayName) userDisplayName.textContent = `Atty. ${fullName}`;
+        if (userDisplayName) userDisplayName.textContent = `${userRes.data.role_id === 2 ? 'Atty. ' : ''}${fullName}`;
 
         const avatarCircle = document.querySelector('.avatar-circle');
         if (avatarCircle) {
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const categorySelectInput = document.getElementById('caseCategorySelectInput');
   const caseNumberPreview = document.getElementById('caseNumberPreview');
-  const catCodes = { '1': 'CIV', '2': 'CRM', '3': 'CORP', '4': 'FAM', '5': 'LAB', '6': 'PROP', '7': 'TAX', '8': 'IP', '9': 'IMM', '10': 'ADM', '11': 'ENV' };
+  const catCodes = { '1': 'CIVIL', '2': 'CRIMINAL', '3': 'CORPORATE', '4': 'FAMILY', '5': 'LABOR', '6': 'PROPERTY', '7': 'TAX', '8': 'IP', '9': 'IMMIGRATION', '10': 'ADMIN', '11': 'ENVIRONMENTAL' };
   function updateCaseNumberPreview() {
     if (!caseNumberPreview || !categorySelectInput) return;
     const code = catCodes[categorySelectInput.value] || 'CASE';
@@ -178,7 +178,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       const categoryId = document.getElementById('caseCategorySelectInput') ? document.getElementById('caseCategorySelectInput').value : '1';
       const payload = {
         title: document.getElementById('caseTitleInput').value.trim(),
-        client_name: document.getElementById('clientNameInput').value.trim(),
         status: document.getElementById('caseStatusSelectInput').value,
         category_id: Number(categoryId),
         description: document.getElementById('caseDescriptionInput') ? document.getElementById('caseDescriptionInput').value.trim() : ''

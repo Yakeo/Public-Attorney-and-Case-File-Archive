@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Attorney Workspace - PACFAS</title>
+  <title>Office Workspace - PACFAS</title>
   <link rel="stylesheet" href="css/styles.css">
   <script src="js/theme.js"></script>
 </head>
@@ -17,7 +17,7 @@
       <div class="nav-brand">
         <a href="dashboard.html" class="logo-link">
         <div class="logo-box">PA</div>
-        <span>PACFAS <small class="role-badge">Attorney Workspace</small></span>
+        <span>PACFAS <small class="role-badge">Office Workspace</small></span>
         </a>
       </div>
       <nav class="nav-links">
@@ -40,7 +40,7 @@
           <h2 id="statActiveCases">0</h2>
         </div>
         <div class="stat-card">
-          <span class="stat-label">Pending Hearings</span>
+          <span class="stat-label">Pending Cases</span>
           <h2 id="statPendingHearings">0</h2>
         </div>
         <div class="stat-card">
@@ -52,7 +52,7 @@
       <!-- Action Toolbar -->
       <section class="toolbar-card">
         <div class="toolbar-left">
-          <input type="text" id="caseSearchInput" placeholder="Search case title or number...">
+          <input type="text" id="caseSearchInput" placeholder="Search case title or description...">
           <select id="caseStatusSelect">
             <option value="All">All Statuses</option>
             <option value="ACTIVE">Active</option>
@@ -93,7 +93,7 @@
                 <th>Title</th>
                 <th>Client</th>
                 <th>Status</th>
-                <th>Filing Date</th>
+                <th>Registered Date</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -152,10 +152,7 @@
         <input type="text" id="caseTitleInput" required placeholder="e.g., People vs. Santos">
       </div>
 
-      <div class="form-group">
-        <label for="clientNameInput">Client Full Name</label>
-        <input type="text" id="clientNameInput" required placeholder="John Doe">
-      </div>
+      <p class="text-muted">After saving, open the case to link a client from the Clients register.</p>
 
       <div class="form-group">
         <label for="caseStatusSelectInput">Initial Status</label>

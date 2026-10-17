@@ -100,6 +100,7 @@
       <section class="card">
         <div class="card-header-flex">
           <h3>Document Archive</h3>
+          <button id="refreshDocumentsBtn" type="button" class="btn-link">Refresh status</button>
           <button id="openUploadModalBtn" class="btn-primary btn-sm">+ Upload Document</button>
         </div>
         <hr class="divider">
@@ -118,7 +119,7 @@
     <div class="modal-content">
       <button id="closeUploadModalBtn" class="modal-close">&times;</button>
       <h2>Upload Case Document</h2>
-      <p class="subtitle">Upload scanned briefs, evidence files, or PDFs (max 25MB). Tesseract OCR will parse selectable text automatically.</p>
+      <p class="subtitle">Upload scanned briefs, evidence files, or PDFs (max 25MB). Text extraction runs after upload. Clear English scans work best; check the extracted text against the original.</p>
       
       <div id="uploadError" class="error-banner hidden"></div>
 
@@ -129,8 +130,8 @@
         </div>
 
         <div class="form-group">
-          <label for="docFileInput">Select File (PDF, PNG, JPG)</label>
-          <input type="file" id="docFileInput" required accept=".pdf,.png,.jpg,.jpeg">
+          <label for="docFileInput">Select File (PDF, PNG, JPG, TIFF)</label>
+          <input type="file" id="docFileInput" required accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff">
         </div>
 
         <button type="submit" id="submitUploadBtn" class="btn-primary full-width">Upload & Extract Text</button>
@@ -138,9 +139,26 @@
     </div>
   </div>
 
+  <div id="hearingModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeHearingModalBtn" type="button" class="modal-close" aria-label="Close hearing form">&times;</button>
+      <h2>Schedule Hearing</h2>
+      <p class="subtitle">Times use the office's configured local time. Assigned attorneys are checked for conflicts within one hour.</p>
+      <div id="hearingError" class="error-banner hidden" role="alert"></div>
+      <form id="hearingForm">
+        <div class="form-group"><label for="hearingTitle">Hearing type / title</label><input id="hearingTitle" required maxlength="50"></div>
+        <div class="form-group"><label for="hearingDate">Date and time</label><input id="hearingDate" type="datetime-local" required></div>
+        <div class="form-group"><label for="hearingVenue">Court / venue</label><input id="hearingVenue" maxlength="100"></div>
+        <div class="form-group"><label for="hearingNotes">Notes</label><textarea id="hearingNotes"></textarea></div>
+        <label id="hearingOverrideLabel" class="hidden"><input id="hearingOverride" type="checkbox"> Administrator: override a scheduling conflict</label>
+        <button id="saveHearingBtn" class="btn-primary full-width" type="submit">Save Hearing</button>
+      </form>
+    </div>
+  </div>
   <script src="js/toast.js"></script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/case-details.js"></script>
+  <script src="js/hearing-form.js"></script>
 </body>
 </html>

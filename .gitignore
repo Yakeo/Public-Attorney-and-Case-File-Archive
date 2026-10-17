@@ -1,0 +1,13 @@
+# Local configuration and generated data (existing tracked files need separate cleanup)
+.env
+.env.*
+!.env.example
+node_modules/
+uploads/
+.cache/
+.venv/
+__pycache__/
+*.log
+
+# OCR language caches must be provisioned separately
+*.traineddata

@@ -1,195 +1,92 @@
-const Tesseract = require('tesseract.js');
-const pdfParse = require('pdf-parse');
-const { pdfToPng } = require('pdf-to-png-converter');
 const fs = require('fs');
 const path = require('path');
 const db = require('../config/db');
 const catchAsync = require('../utils/catchAsync');
 const CustomError = require('../utils/customError');
-const { logAction, getRequestMeta } = require('../utils/auditLog');
+const validateDocument = require('../utils/validateDocument');
+const { scheduleOCR } = require('../utils/documentOCR');
 
-const processOCRInBackground = async (documentCode, versionNumber, filePath) => {
-  try {
-    let extractedText = '';
-
-    if (String(filePath).toLowerCase().endsWith('.pdf')) {
-      // 1. Try embedded text extraction (text-based PDFs)
-      const dataBuffer = fs.readFileSync(filePath);
-      const parsed = await pdfParse(dataBuffer);
-      extractedText = (parsed.text || '').trim();
-
-      // 2. Fallback: rasterize pages and OCR (scanned/image-only PDFs)
-      if (extractedText.length < 50) {
-        try {
-          const pages = await pdfToPng(filePath, { verbosityLevel: 0 });
-          const ocrParts = [];
-          let worker = null;
-          try {
-            worker = await Tesseract.createWorker('eng');
-            for (const page of pages) {
-              const ret = await worker.recognize(page.content);
-              const t = (ret.data.text || '').trim();
-              if (t) ocrParts.push(`--- Page ${page.pageNumber} ---\n${t}`);
-            }
-          } finally {
-            if (worker) await worker.terminate();
-          }
-          extractedText = ocrParts.join('\n\n');
-        } catch (ocrErr) {
-          console.error('[OCR PDF FALLBACK FAILURE]', ocrErr);
-        }
-      }
-    } else {
-      // Image OCR via Tesseract
-      let worker = null;
-      try {
-        worker = await Tesseract.createWorker('eng');
-        const ret = await worker.recognize(filePath);
-        extractedText = ret.data.text || '';
-      } finally {
-        if (worker) await worker.terminate();
-      }
-    }
-
-    await db.execute(
-      `UPDATE document_version
-       SET extracted_text = ?
-       WHERE document_code = ? AND version_no = ?`,
-      [extractedText, documentCode, versionNumber]
-    );
-
-    console.log(`[OCR SUCCESS] document_code: ${documentCode}, v${versionNumber}`);
-  } catch (error) {
-    console.error(`[OCR FAILURE] document_code: ${documentCode}, v${versionNumber}:`, error);
+// Both parent and revision metadata are saved together. Files are compensated on
+// failure by the global handler; committed uploads must never be deleted there.
+async function saveUpload(req, existingId) {
+  await validateDocument(req.file);
+  if (!existingId && !/^[1-9]\d*$/.test(String(req.body.case_id || ''))) {
+    throw new CustomError('A valid case_id is required.', 400);
   }
-};
-
-exports.uploadAndProcessDocument = catchAsync(async (req, res, next) => {
-  if (!req.file) {
-    return next(new CustomError('No document file was uploaded.', 400));
-  }
-
-  const { case_id, title } = req.body;
-  const userId = req.user?.user_id;
-
-  if (!case_id) {
-    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    return next(new CustomError('Missing required field: case_id.', 400));
-  }
-
   const connection = await db.getConnection();
   req.dbConnection = connection;
-
+  let documentCode = existingId, versionNumber = 1;
   try {
     await connection.beginTransaction();
-
-    const [docResult] = await connection.execute(
-      `INSERT INTO document
-        (cf_code, doc_name, file_type, file_path, status_id, current_version_no, uploaded_by, date_added)
-       VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())`,
-      [case_id, title || req.file.originalname, req.file.mimetype, req.file.path, 1, 1, userId]
-    );
-
-    const documentCode = docResult.insertId;
-
+    if (existingId) {
+      // Lock the parent before reading MAX so concurrent version uploads serialize.
+      const [documents] = await connection.execute(
+        'SELECT document_code FROM document WHERE document_code = ? AND is_deleted = 0 FOR UPDATE', [existingId]
+      );
+      if (!documents.length) throw new CustomError('Document not found.', 404);
+      const [versions] = await connection.execute(
+        'SELECT MAX(version_no) AS max_version FROM document_version WHERE document_code = ?', [existingId]
+      );
+      versionNumber = (versions[0].max_version || 0) + 1;
+    } else {
+      const [cases] = await connection.execute(
+        'SELECT cf_code FROM case_file WHERE cf_code = ? AND is_deleted = 0', [req.body.case_id]
+      );
+      if (!cases.length) throw new CustomError('Case not found.', 404);
+      const [result] = await connection.execute(
+        `INSERT INTO document
+         (cf_code, doc_name, file_type, file_path, status_id, current_version_no, uploaded_by, date_added)
+         VALUES (?, ?, ?, ?, 1, 1, ?, CURDATE())`,
+        [req.body.case_id, req.body.title || req.file.originalname, req.file.mimetype, req.file.path, req.user.user_id]
+      );
+      documentCode = result.insertId;
+    }
     await connection.execute(
       `INSERT INTO document_version
-        (document_code, version_no, file_name, file_path, file_size, mime_type, extracted_text, uploaded_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [documentCode, 1, req.file.filename, req.file.path, req.file.size, req.file.mimetype, null, userId]
+       (document_code, version_no, file_name, file_path, file_size, mime_type, extracted_text, uploaded_by, ocr_status)
+       VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 'PENDING')`,
+      [documentCode, versionNumber, req.file.filename, req.file.path, req.file.size, req.file.mimetype, req.user.user_id]
     );
-
+    if (existingId) await connection.execute(
+      'UPDATE document SET current_version_no = ? WHERE document_code = ?', [versionNumber, documentCode]
+    );
     await connection.commit();
-    connection.release();
-    req.dbConnection = null;
-
-    processOCRInBackground(documentCode, 1, req.file.path);
-
-    res.status(201).json({
-      status: 'success',
-      message: 'Document uploaded successfully. OCR text extraction is running in the background.',
-      data: {
-        documentId: documentCode,
-        filename: req.file.filename,
-        versionNumber: 1,
-        status: 'PROCESSING'
-      }
-    });
+    req.uploadCommitted = true;
   } catch (error) {
-    await connection.rollback();
-    connection.release();
+    try { await connection.rollback(); } catch (rollbackError) { console.error('Upload rollback failed:', rollbackError.message); }
+    throw error;
+  } finally {
     req.dbConnection = null;
-    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    return next(error);
+    connection.release();
   }
+  scheduleOCR(documentCode, versionNumber, req.file.path);
+  return { documentId: Number(documentCode), versionNumber, filename: req.file.filename, status: 'PENDING' };
+}
+
+exports.uploadAndProcessDocument = catchAsync(async (req, res) => {
+  const data = await saveUpload(req);
+  res.status(201).json({ status: 'success', message: 'Document saved. Text extraction is pending.', data });
+});
+exports.uploadNewVersion = catchAsync(async (req, res) => {
+  const data = await saveUpload(req, req.params.document_id);
+  res.status(201).json({ status: 'success', message: 'Revision saved. Text extraction is pending.', data });
 });
 
-exports.uploadNewVersion = catchAsync(async (req, res, next) => {
-  if (!req.file) {
-    return next(new CustomError('No file uploaded for new version.', 400));
-  }
-
-  const { document_id } = req.params;
-  const uploadedBy = req.user?.user_id;
-
-  const [docCheck] = await db.execute(
-    `SELECT document_code FROM document WHERE document_code = ?`,
-    [document_id]
+exports.retryOCR = catchAsync(async (req, res, next) => {
+  const { document_id, version_no } = req.params;
+  const [rows] = await db.execute(
+    `SELECT dv.file_path FROM document_version dv JOIN document d ON d.document_code = dv.document_code
+     WHERE dv.document_code = ? AND dv.version_no = ? AND d.is_deleted = 0`, [document_id, version_no]
   );
-
-  if (docCheck.length === 0) {
-    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    return next(new CustomError(`Document with ID ${document_id} not found.`, 404));
-  }
-
-  const connection = await db.getConnection();
-  req.dbConnection = connection;
-
-  try {
-    await connection.beginTransaction();
-
-    const [existingVersions] = await connection.execute(
-      `SELECT MAX(version_no) AS max_version FROM document_version WHERE document_code = ? FOR UPDATE`,
-      [document_id]
-    );
-
-    const nextVersionNumber = (existingVersions[0].max_version || 0) + 1;
-
-    await connection.execute(
-      `INSERT INTO document_version
-        (document_code, version_no, file_name, file_path, file_size, mime_type, extracted_text, uploaded_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [document_id, nextVersionNumber, req.file.filename, req.file.path, req.file.size, req.file.mimetype, null, uploadedBy]
-    );
-
-    await connection.execute(
-      `UPDATE document SET current_version_no = ? WHERE document_code = ?`,
-      [nextVersionNumber, document_id]
-    );
-
-    await connection.commit();
-    connection.release();
-    req.dbConnection = null;
-
-    processOCRInBackground(document_id, nextVersionNumber, req.file.path);
-
-    res.status(201).json({
-      status: 'success',
-      message: `Document version ${nextVersionNumber} uploaded successfully. Processing OCR in background.`,
-      data: {
-        documentId: Number(document_id),
-        versionNumber: nextVersionNumber,
-        filename: req.file.filename,
-        status: 'PROCESSING'
-      }
-    });
-  } catch (error) {
-    await connection.rollback();
-    connection.release();
-    req.dbConnection = null;
-    if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    return next(error);
-  }
+  if (!rows.length) return next(new CustomError('Document version not found.', 404));
+  if (!fs.existsSync(rows[0].file_path)) return next(new CustomError('File not found on disk.', 404));
+  const [result] = await db.execute(
+    `UPDATE document_version SET ocr_status = 'PENDING', ocr_error = NULL
+     WHERE document_code = ? AND version_no = ? AND ocr_status = 'FAILED'`, [document_id, version_no]
+  );
+  if (!result.affectedRows) return next(new CustomError('Only failed extractions can be retried.', 409));
+  scheduleOCR(document_id, version_no, rows[0].file_path);
+  res.status(202).json({ status: 'success', message: 'Text extraction queued.', data: { status: 'PENDING' } });
 });
 
 exports.getDocumentVersions = catchAsync(async (req, res, next) => {
@@ -206,7 +103,8 @@ exports.getDocumentVersions = catchAsync(async (req, res, next) => {
       dv.mime_type,
       dv.extracted_text,
       dv.uploaded_at AS created_at,
-      CASE WHEN dv.extracted_text IS NOT NULL THEN 'COMPLETED' ELSE 'PROCESSING' END AS ocr_status,
+      dv.ocr_status,
+      dv.ocr_error,
       u.username AS uploaded_by_user
      FROM document_version dv
      LEFT JOIN user_account u ON dv.uploaded_by = u.user_id
@@ -246,7 +144,7 @@ exports.searchDocumentText = catchAsync(async (req, res, next) => {
       INSTR(LOWER(dv.extracted_text), LOWER(?)) AS match_position
     FROM document_version dv
     JOIN document d ON dv.document_code = d.document_code
-    WHERE dv.extracted_text LIKE ?
+    WHERE d.is_deleted = 0 AND dv.ocr_status = 'COMPLETED' AND dv.extracted_text LIKE ?
   `;
 
   const params = [q, `%${q}%`];
@@ -278,6 +176,9 @@ exports.listDocuments = catchAsync(async (req, res, next) => {
       d.cf_code AS case_id,
       dv.file_name AS filename,
       dv.extracted_text AS ocr_text,
+      dv.ocr_status,
+      dv.ocr_error,
+      dv.version_no AS version_number,
       dv.uploaded_at AS created_at
     FROM document d
     LEFT JOIN document_version dv ON dv.document_code = d.document_code
@@ -304,12 +205,17 @@ exports.listDocuments = catchAsync(async (req, res, next) => {
 exports.downloadDocument = catchAsync(async (req, res, next) => {
   const { document_id } = req.params;
   const [rows] = await db.execute(
-    `SELECT file_path, doc_name FROM document WHERE document_code = ? AND is_deleted = 0`,
+    `SELECT dv.file_path, dv.file_name, dv.mime_type, d.doc_name
+     FROM document d JOIN document_version dv ON dv.document_code = d.document_code
+       AND dv.version_no = d.current_version_no
+     WHERE d.document_code = ? AND d.is_deleted = 0`,
     [document_id]
   );
   if (rows.length === 0) return next(new CustomError('Document not found.', 404));
   const filePath = rows[0].file_path;
   const fs = require('fs');
   if (!fs.existsSync(filePath)) return next(new CustomError('File not found on disk.', 404));
-  res.download(filePath, rows[0].doc_name || 'document');
+  const ext = path.extname(rows[0].file_name || filePath);
+  const name = path.basename(rows[0].doc_name || 'document').replace(/[\r\n]/g, '');
+  res.download(filePath, name.toLowerCase().endsWith(ext.toLowerCase()) ? name : name + ext);
 });
