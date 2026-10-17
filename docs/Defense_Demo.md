@@ -72,22 +72,22 @@ All eight sample logins use this **demo-only password**: `Defense-Demo-7426!`
 | `lila.demo@example.test` | Attorney: Lila Demo, `D0005` |
 | `demo.public@example.test` | Standard/public role, not authorized for the private archive |
 
-Use **Staff Login** on the landing page for staff/admin/attorney walkthroughs. The 18 client profiles have **inactive**, random-password backing accounts; this is not a claim that a functioning client portal exists. Counsel can view the office archive, but case creation and counsel assignment remain staff/admin actions.
+Use **Staff Login** on the landing page for staff/admin/attorney walkthroughs. The 18 client profiles have **inactive**, random-password backing accounts; this is not a claim that a functioning client portal exists. Counsel can view the office archive and create private cases; client management and counsel assignment remain staff/admin actions. Creating a case does not automatically assign its creator as counsel.
 
 ## Suggested 8–10 minute demonstration
 
 1. **Public directory:** show five fictional attorneys, search for Tala, and open a profile. The public case list contains only `DEMO-17` and `DEMO-18`; the other 16 are private.
 2. **Dashboard:** sign in as admin; show 18 cases, varied categories/statuses/priorities, and five documents per case. Search by the title prefix, such as `DEMO-01`; these are training labels, separate from the app's generated case numbers.
-3. **OCR:** open `DEMO-01 - Riverside Boundary Review`. Document 1 is an image-only scanned PDF; document 2 is a PNG. Open extracted text and locate **ORCHID**. Compare it with the original download. The initial extracted text was produced by the real parser/recognizer, not copied from the authoring template.
-4. **Live upload:** upload a copy from `demo-data/defense-v1/files/` through the document modal. Observe pending/processing/completed states and the newly extracted text. This creates an **additional** document unless you choose **Upload revision** on an existing card.
+3. **OCR:** open `DEMO-01 - Riverside Boundary Review`. Document 1 is an image-only scanned PDF; document 2 is a PNG. Type **ORCHID** into **Search documents** in the workspace or case view. Matching current documents appear as you type; use Open case or Download document to retrieve them. The full extracted text is no longer displayed on cards. The initial extracted text was produced by the real parser/recognizer, not copied from the authoring template.
+4. **Live upload:** upload a copy from `demo-data/defense-v1/files/` through the document modal. Keep an ORCHID document search active while uploading a new scan containing that word. Observe pending/processing/completed states; the new document joins the results after OCR finishes, without retyping. This creates an **additional** document unless you choose **Upload revision** on an existing card.
 5. **Revisions:** open `DEMO-02` or `DEMO-03`. The intake document already has revisions 1 and 2; its current card/download uses revision 2, containing **REVISIONTWO**. Revision 1 contains **INITIALCOPY**. The current UI does **not** include a historical-version picker: inspect the real versions endpoint for history or use **Upload revision** to demonstrate another version.
 6. **Relationships:** `DEMO-03 - Meadow Family Support` has **Iris Demo + Mateo Demo**, and **Dalisay Sample03 + Amihan Sample01**. Amihan is also linked to `DEMO-01`. Show the counsel/client sections and linked case list.
 7. **Hearing conflict:** sign in as staff. `DEMO-01` already has a hearing **14 days after the package reference date at 09:00**. Attempt a hearing for `DEMO-06` on that date at **09:30**. Both cases share Tala Demo, so the existing endpoint rejects the attempt with **409**, rather than inserting an invalid schedule. For the supplied package dated **2026-10-17**, use **2026-10-31**. If your browser/server time zones differ, use consistent zones before rehearsing; on a Philippine device `TZ=Asia/Manila` in the server environment aligns with local browser time.
-8. **Role boundaries:** the public-role account cannot fetch private cases/documents; attorney accounts cannot create cases or change assignments. Do not promise assignment-only viewing: the app currently allows authorized office roles to view the office archive.
+8. **Role boundaries:** the public-role account cannot fetch private cases/documents; attorney accounts can create cases but cannot change counsel assignments or manage clients. Do not promise assignment-only viewing: the app currently allows authorized office roles to view the office archive.
 
 ### Optional API checks from the signed-in browser
 
-There is no dedicated full-text-search input/history picker in the current UI. These **read-only** examples can be run in the browser console on a page that loads the shared `api.js` helper:
+Use **Search documents** for live title, filename and OCR-content retrieval. Queries are debounced by 250 ms and active visible searches refresh every 3 seconds. Only current versions are searched, with up to 100 matches; narrow the query if it reaches the limit. A historical-version picker is still not provided. These **read-only** examples can be run in the browser console on a page that loads the shared `api.js` helper:
 
 ```js
 console.table((await apiRequest('/documents/search?q=ORCHID')).data);

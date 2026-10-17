@@ -4,9 +4,9 @@ function authHeaders() {
   const token = localStorage.getItem('jwtToken') || localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
-async function apiRequest(endpoint, method = 'GET', body = null) {
+async function apiRequest(endpoint, method = 'GET', body = null, signal) {
   const headers = authHeaders();
-  const options = { method, headers };
+  const options = { method, headers, ...(signal ? { signal } : {}) };
   if (body && method !== 'GET') {
     if (body instanceof FormData) options.body = body; // Browser supplies multipart boundary.
     else { headers['Content-Type'] = 'application/json'; options.body = JSON.stringify(body); }

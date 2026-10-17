@@ -79,6 +79,17 @@
         <button id="btnCreateCase" class="btn-primary">+ Create New Case</button>
       </section>
 
+      <section class="card document-search" aria-labelledby="documentSearchHeading">
+        <h3 id="documentSearchHeading">Search documents</h3>
+        <label for="documentSearchInput">Search title, filename, or words inside a document</label>
+        <div class="document-search-controls">
+          <input id="documentSearchInput" type="search" maxlength="200" autocomplete="off" placeholder="Type words from a scanned document…" aria-describedby="documentSearchStatus">
+          <button id="clearDocumentSearch" type="button" class="btn-secondary">Clear</button>
+        </div>
+        <p id="documentSearchStatus" class="text-muted" role="status" aria-live="polite">Type to search current document versions. New scan contents become searchable after OCR finishes.</p>
+        <div id="documentSearchResults"></div>
+      </section>
+
       <!-- Cases Table Section -->
       <section class="card table-card">
         <div class="card-header-flex">
@@ -179,6 +190,7 @@
   <script src="js/toast.js"></script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/document-search.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>
