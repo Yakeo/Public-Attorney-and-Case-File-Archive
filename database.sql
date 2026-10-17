@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS `document` (
   `document_code` int(11) NOT NULL AUTO_INCREMENT,
   `cf_code` int(11) NOT NULL,
   `doc_name` varchar(150) NOT NULL,
-  `file_type` varchar(10) DEFAULT NULL,
+  `file_type` varchar(100) DEFAULT NULL,
   `file_path` varchar(255) NOT NULL,
   `status_id` int(11) DEFAULT NULL,
   `current_version_no` int(11) NOT NULL DEFAULT 1,
@@ -232,9 +232,12 @@ CREATE TABLE IF NOT EXISTS `document_version` (
   `file_size` int(11) DEFAULT NULL,
   `mime_type` varchar(100) DEFAULT NULL,
   `extracted_text` longtext DEFAULT NULL,
+  `ocr_status` enum('PENDING','PROCESSING','COMPLETED','FAILED') NOT NULL DEFAULT 'PENDING',
+  `ocr_error` varchar(255) DEFAULT NULL,
   `uploaded_by` int(11) NOT NULL,
   `uploaded_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`version_id`),
+  UNIQUE KEY `uq_document_version` (`document_code`, `version_no`),
   KEY `fk_dv_document` (`document_code`),
   KEY `fk_dv_uploaded_by` (`uploaded_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -5,7 +5,7 @@ const documentController = require('../controllers/documentController');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 // Apply authentication middleware to all document routes
-router.use(authenticateToken);
+router.use(authenticateToken, authorizeRoles(1, 2, 3));
 
 // 0. List documents (optionally by case_id)
 router.get('/', documentController.listDocuments);
@@ -35,6 +35,8 @@ router.post(
   upload.single('document'), 
   documentController.uploadNewVersion
 );
+
+router.post('/:document_id/versions/:version_no/retry', authorizeRoles(1, 2, 3), documentController.retryOCR);
 
 router.get('/:document_id/download', documentController.downloadDocument);
 

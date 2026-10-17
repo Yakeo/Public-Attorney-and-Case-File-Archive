@@ -15,28 +15,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const uploadModal = document.getElementById('uploadModal');
   const openUploadModalBtn = document.getElementById('openUploadModalBtn');
+  const refreshDocumentsBtn = document.getElementById('refreshDocumentsBtn');
   const closeUploadModalBtn = document.getElementById('closeUploadModalBtn');
   const uploadDocForm = document.getElementById('uploadDocForm');
   const uploadError = document.getElementById('uploadError');
   const submitUploadBtn = document.getElementById('submitUploadBtn');
 
-  (async () => {
-    try {
-      const u = await apiRequest('/auth/me');
-      const isStaffOrAdmin = u.data && (u.data.role_id === 1 || u.data.role_id === 3);
-      if (!isStaffOrAdmin) {
-        const aForm = document.getElementById('assignAttorneyForm');
-        const cForm = document.getElementById('linkClientForm');
-        if (aForm) aForm.style.display = 'none';
-        if (cForm) cForm.style.display = 'none';
-      }
-    } catch (e) { /* ignore */ }
-  })();
+  let pollTimer;
+  let pollCount = 0;
+  let revisionDocumentId = null;
+  window.addEventListener('pagehide', () => clearTimeout(pollTimer));
 
   initCaseView();
 
   async function initCaseView() {
     try {
+      const user = await apiRequest('/auth/me');
+      if (![1, 3].includes(user.data.role_id)) {
+        if (assignAttorneyForm) assignAttorneyForm.style.display = 'none';
+        if (linkClientForm) linkClientForm.style.display = 'none';
+      }
       const [caseRes, docsRes, hearingsRes, attsRes, clientsRes, allAttRes, allCliRes] = await Promise.all([
         apiRequest(`/cases/${caseId}`),
         apiRequest(`/documents?case_id=${caseId}`),
@@ -51,6 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderMeta(caseRes.data);
       renderHearings(hearingsRes.data || []);
       renderDocuments(docsRes.data || []);
+      scheduleRefresh(docsRes.data || []);
       renderAttorneys(attsRes.data || []);
       renderClients(clientsRes.data || []);
       populateAttorneySelect(allAttRes.data || []);
@@ -118,8 +117,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="doc-card">
         <div class="doc-header">
           <strong>${escapeHtml(d.title)}</strong>
-          <a href="/api/v1/documents/${escapeHtml(d.id)}/download" class="btn-link" target="_blank">Download ↗</a>
+          <button type="button" class="btn-link" data-action="download" data-id="${escapeHtml(d.id)}">Download ↗</button>
+          <button type="button" class="btn-link" data-action="revision" data-id="${escapeHtml(d.id)}">Upload revision</button>
         </div>
+        <p class="text-muted text-xs">Text extraction: ${escapeHtml(d.ocr_status || 'PENDING')} · Version ${escapeHtml(d.version_number || 1)}</p>
+        ${d.ocr_status === 'FAILED' ? `<p class="error-text">${escapeHtml(d.ocr_error || 'Extraction failed.')}</p><button type="button" class="btn-link" data-action="retry" data-id="${escapeHtml(d.id)}" data-version="${escapeHtml(d.version_number)}">Retry extraction</button>` : ''}
         ${d.ocr_text ? `
           <details class="ocr-container">
             <summary class="ocr-toggle">View Extracted OCR Text</summary>
@@ -132,6 +134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (openUploadModalBtn) {
     openUploadModalBtn.addEventListener('click', () => {
+      revisionDocumentId = null;
       if (uploadError) uploadError.classList.add('hidden');
       if (uploadDocForm) uploadDocForm.reset();
       if (uploadModal) uploadModal.classList.remove('hidden');
@@ -150,25 +153,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (uploadError) uploadError.classList.add('hidden');
       if (submitUploadBtn) {
         submitUploadBtn.disabled = true;
-        submitUploadBtn.textContent = 'Uploading & Parsing OCR...';
+        submitUploadBtn.textContent = 'Uploading...';
       }
 
       try {
+        const file = document.getElementById('docFileInput').files[0];
+        if (!file) throw new Error('Select a document first.');
+        const data = new FormData();
+        data.append('document', file);
+        data.append('case_id', caseId);
+        data.append('title', document.getElementById('docTitleInput').value.trim());
+        const endpoint = revisionDocumentId
+          ? `/documents/${revisionDocumentId}/versions` : '/documents/upload';
+        await apiRequest(endpoint, 'POST', data);
         if (uploadModal) uploadModal.classList.add('hidden');
-        (async () => {
-    try {
-      const u = await apiRequest('/auth/me');
-      const isStaffOrAdmin = u.data && (u.data.role_id === 1 || u.data.role_id === 3);
-      if (!isStaffOrAdmin) {
-        const aForm = document.getElementById('assignAttorneyForm');
-        const cForm = document.getElementById('linkClientForm');
-        if (aForm) aForm.style.display = 'none';
-        if (cForm) cForm.style.display = 'none';
-      }
-    } catch (e) { /* ignore */ }
-  })();
-
-  initCaseView();
+        pollCount = 0;
+        await refreshDocuments().catch(error => showToast(error.message, 'error'));
+        showToast('Document saved. Text extraction will run in the background.', 'success');
       } catch (err) {
         if (uploadError) {
           uploadError.textContent = err.message;
@@ -182,6 +183,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
+
+  if (refreshDocumentsBtn) refreshDocumentsBtn.addEventListener('click', async () => {
+    refreshDocumentsBtn.disabled = true;
+    pollCount = 0;
+    try { await refreshDocuments(); } catch (error) { showToast(error.message, 'error'); }
+    finally { refreshDocumentsBtn.disabled = false; }
+  });
+
+  async function refreshDocuments() {
+    const response = await apiRequest(`/documents?case_id=${caseId}`);
+    renderDocuments(response.data || []);
+    scheduleRefresh(response.data || []);
+  }
+  function scheduleRefresh(documents) {
+    clearTimeout(pollTimer);
+    if (documents.some(d => ['PENDING', 'PROCESSING'].includes(d.ocr_status)) && pollCount < 48) {
+      pollTimer = setTimeout(async () => {
+        pollCount++;
+        try { await refreshDocuments(); }
+        catch (error) { showToast(error.message, 'error'); }
+      }, 2500);
+    }
+  }
+  if (documentsList) documentsList.addEventListener('click', async event => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+    const { action, id, version } = button.dataset;
+    button.disabled = true;
+    try {
+      if (action === 'download') await apiDownload(`/documents/${id}/download`);
+      if (action === 'retry') {
+        await apiRequest(`/documents/${id}/versions/${version}/retry`, 'POST', {});
+        pollCount = 0;
+        await refreshDocuments();
+      }
+      if (action === 'revision') {
+        revisionDocumentId = id;
+        uploadDocForm.reset();
+        uploadError.classList.add('hidden');
+        uploadModal.classList.remove('hidden');
+      }
+    } catch (error) { showToast(error.message, 'error'); }
+    finally { button.disabled = false; }
+  });
 
   function renderAttorneys(attorneys) {
     if (!attorneysList) return;
@@ -234,20 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!attorney_id) return;
       try {
         await apiRequest(`/cases/${caseId}/attorneys`, 'POST', { attorney_id, role_on_case });
-        (async () => {
-    try {
-      const u = await apiRequest('/auth/me');
-      const isStaffOrAdmin = u.data && (u.data.role_id === 1 || u.data.role_id === 3);
-      if (!isStaffOrAdmin) {
-        const aForm = document.getElementById('assignAttorneyForm');
-        const cForm = document.getElementById('linkClientForm');
-        if (aForm) aForm.style.display = 'none';
-        if (cForm) cForm.style.display = 'none';
-      }
-    } catch (e) { /* ignore */ }
-  })();
-
-  initCaseView();
+        await initCaseView();
       } catch (err) {
         showToast(err.message || 'Failed to assign attorney.', 'error');
       }
@@ -262,20 +294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!client_id) return;
       try {
         await apiRequest(`/clients/${client_id}/cases`, 'POST', { cf_code: caseId, client_role });
-        (async () => {
-    try {
-      const u = await apiRequest('/auth/me');
-      const isStaffOrAdmin = u.data && (u.data.role_id === 1 || u.data.role_id === 3);
-      if (!isStaffOrAdmin) {
-        const aForm = document.getElementById('assignAttorneyForm');
-        const cForm = document.getElementById('linkClientForm');
-        if (aForm) aForm.style.display = 'none';
-        if (cForm) cForm.style.display = 'none';
-      }
-    } catch (e) { /* ignore */ }
-  })();
-
-  initCaseView();
+        await initCaseView();
       } catch (err) {
         showToast(err.message || 'Failed to link client.', 'error');
       }

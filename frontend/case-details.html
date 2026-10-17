@@ -100,6 +100,7 @@
       <section class="card">
         <div class="card-header-flex">
           <h3>Document Archive</h3>
+          <button id="refreshDocumentsBtn" type="button" class="btn-link">Refresh status</button>
           <button id="openUploadModalBtn" class="btn-primary btn-sm">+ Upload Document</button>
         </div>
         <hr class="divider">
@@ -118,7 +119,7 @@
     <div class="modal-content">
       <button id="closeUploadModalBtn" class="modal-close">&times;</button>
       <h2>Upload Case Document</h2>
-      <p class="subtitle">Upload scanned briefs, evidence files, or PDFs (max 25MB). Tesseract OCR will parse selectable text automatically.</p>
+      <p class="subtitle">Upload scanned briefs, evidence files, or PDFs (max 25MB). Text extraction runs after upload. Clear English scans work best; check the extracted text against the original.</p>
       
       <div id="uploadError" class="error-banner hidden"></div>
 
@@ -129,8 +130,8 @@
         </div>
 
         <div class="form-group">
-          <label for="docFileInput">Select File (PDF, PNG, JPG)</label>
-          <input type="file" id="docFileInput" required accept=".pdf,.png,.jpg,.jpeg">
+          <label for="docFileInput">Select File (PDF, PNG, JPG, TIFF)</label>
+          <input type="file" id="docFileInput" required accept=".pdf,.png,.jpg,.jpeg,.tif,.tiff">
         </div>
 
         <button type="submit" id="submitUploadBtn" class="btn-primary full-width">Upload & Extract Text</button>

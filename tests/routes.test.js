@@ -1,0 +1,222 @@
+// Actual Express HTTP routes with a fake database/OCR scheduler. No production writes.
+const { test, before, after, beforeEach } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+let base, server, calls, transactions, jobs, handler, roleOverride, inactive;
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'pacfas-regression-'));
+const files = new Set();
+process.env.JWT_SECRET = 'local-regression-test-secret';
+const execute = async (sql, params = []) => {
+  calls.push({ sql, params });
+  if (params.includes(undefined)) throw new TypeError('Undefined SQL binding');
+  if (sql.startsWith('SELECT user_id, role_id, is_active')) {
+    return [[{ user_id: params[0], role_id: roleOverride ?? params[0], is_active: !inactive }]];
+  }
+  return [await handler(sql, params), []];
+};
+const connection = { execute, beginTransaction: async () => transactions.push('begin'),
+  commit: async () => transactions.push('commit'), rollback: async () => transactions.push('rollback'),
+  release: () => transactions.push('release') };
+function replace(modulePath, exports) {
+  const id = require.resolve(modulePath);
+  require.cache[id] = { id, filename: id, loaded: true, exports };
+}
+replace('../config/db', { execute, getConnection: async () => connection });
+replace('../utils/auditLog', { logAction: async () => {}, getRequestMeta: () => ({}) });
+replace('../utils/documentOCR', { scheduleOCR: (...args) => jobs.push(args) });
+before(async () => {
+  const app = require('../app');
+  server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+  base = `http://127.0.0.1:${server.address().port}`;
+});
+beforeEach(() => {
+  calls = []; transactions = []; jobs = []; roleOverride = undefined; inactive = false;
+  handler = sql => /^(INSERT|UPDATE)/i.test(sql.trim()) ? { insertId: 42, affectedRows: 1 } : [];
+});
+after(async () => {
+  await new Promise(resolve => server.close(resolve));
+  for (const file of files) fs.rmSync(file, { force: true });
+  fs.rmSync(temp, { recursive: true, force: true });
+});
+async function request(url, { method = 'GET', role = 1, body, form, token, noAuth } = {}) {
+  const headers = noAuth ? {} : { Authorization: `Bearer ${token || jwt.sign({ user_id: role, role_id: role }, process.env.JWT_SECRET)}` };
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  const response = await fetch(base + url, { method, headers, body: form || (body === undefined ? undefined : JSON.stringify(body)) });
+  const text = await response.text();
+  let data; try { data = JSON.parse(text); } catch { data = text; }
+  return { status: response.status, data, headers: response.headers };
+}
+const api = (url, options) => request('/api/v1' + url, options);
+function pngForm() {
+  const form = new FormData(); form.append('case_id', '42'); form.append('title', 'Synthetic evidence');
+  form.append('document', new Blob([Buffer.from([137,80,78,71,13,10,26,10])], { type: 'image/png' }), 'evidence.png');
+  return form;
+}
+function uploadHandler(sql, params) {
+  if (sql.includes('SELECT cf_code')) return [{ cf_code: 42 }];
+  if (sql.includes('SELECT document_code')) return [{ document_code: 42 }];
+  if (sql.includes('MAX(version_no)')) return [{ max_version: 2 }];
+  if (sql.includes('INSERT INTO document_version')) files.add(params[3]);
+  return { insertId: 42, affectedRows: 1 };
+}
+
+test('server serves frontend and health; readiness checks the database', async () => {
+  assert.equal((await request('/', { noAuth: true })).status, 200);
+  assert.equal((await request('/health', { noAuth: true })).status, 200);
+  assert.equal((await request('/ready', { noAuth: true })).status, 200);
+  handler = () => { throw new Error('Database unavailable'); };
+  assert.equal((await request('/ready', { noAuth: true })).status, 503);
+});
+test('raw uploaded files are not exposed, even without a token', async () => {
+  assert.equal((await request('/uploads/documents/private.pdf', { noAuth: true })).status, 404);
+});
+test('unknown API route returns JSON 404', async () => {
+  const r = await api('/not-a-route'); assert.equal(r.status, 404); assert.equal(r.data.status, 'fail');
+});
+for (const endpoint of ['/cases', '/clients', '/documents', '/hearings', '/documents/1/download']) {
+  test(`missing token rejected: ${endpoint}`, async () => assert.equal((await api(endpoint, { noAuth: true })).status, 401));
+}
+test('expired token rejected before any query', async () => {
+  const token = jwt.sign({ user_id: 1 }, process.env.JWT_SECRET, { expiresIn: -1 });
+  assert.equal((await api('/cases', { token })).status, 401); assert.equal(calls.length, 0);
+});
+test('inactive account cannot use an otherwise valid token', async () => {
+  inactive = true; assert.equal((await api('/cases')).status, 401);
+});
+test('current database role overrides stale administrator claims', async () => {
+  roleOverride = 5; assert.equal((await api('/cases')).status, 403);
+});
+for (const endpoint of ['/cases', '/documents', '/hearings']) {
+  test(`public role cannot read private archive: ${endpoint}`, async () => assert.equal((await api(endpoint, { role: 5 })).status, 403));
+}
+test('public registration always stores standard role, regardless of supplied role', async () => {
+  const r = await api('/auth/register', { method: 'POST', noAuth: true, body: { username: 'synthetic', email: 'synthetic@example.test', password: 'synthetic-password', role_id: 1 } });
+  assert.equal(r.status, 201);
+  const insert = calls.find(c => c.sql.includes('INSERT INTO user_account'));
+  assert.equal(insert.params[3], 5);
+  assert.ok(await bcrypt.compare('synthetic-password', insert.params[2]));
+});
+test('inactive user cannot log in', async () => {
+  handler = () => [{ user_id: 1, is_active: 0, password_hash: 'not-used' }];
+  assert.equal((await api('/auth/login', { method: 'POST', body: { email: 'test@example.test', password: 'test' } })).status, 401);
+});
+test('active login returns signed token, never password hash', async () => {
+  const hash = await bcrypt.hash('synthetic-password', 4);
+  handler = () => [{ user_id: 1, role_id: 1, is_active: 1, password_hash: hash }];
+  const r = await api('/auth/login', { method: 'POST', body: { email: 'test@example.test', password: 'synthetic-password' } });
+  assert.equal(r.status, 200); assert.equal(jwt.verify(r.data.token, process.env.JWT_SECRET).user_id, 1);
+  assert.equal(r.data.user.password_hash, undefined);
+});
+test('attorneys cannot change staff-only case assignments', async () => {
+  assert.equal((await api('/cases/42/attorneys', { method: 'POST', role: 2, body: { attorney_id: 'A0001' } })).status, 403);
+});
+test('client link route binds the client ID correctly', async () => {
+  handler = sql => sql.includes('SELECT client_id') ? [{ client_id: 1 }] : sql.includes('SELECT cf_code') ? [{ cf_code: 42 }] : { insertId: 9 };
+  const r = await api('/clients/1/cases', { method: 'POST', body: { cf_code: 42 } });
+  assert.equal(r.status, 201);
+  assert.deepEqual(calls.find(c => c.sql.includes('INSERT INTO client_case')).params, ['1', 42, null]);
+});
+test('client assigned-case listing binds the client ID', async () => {
+  assert.equal((await api('/clients/1/cases')).status, 200);
+  assert.deepEqual(calls.at(-1).params, ['1']);
+});
+test('case hearing query uses an existing title source', async () => {
+  assert.equal((await api('/hearings?case_id=42')).status, 200);
+  assert.ok(!calls.at(-1).sql.includes('h.title'));
+  assert.match(calls.at(-1).sql, /h.hearing_type AS title/);
+});
+test('calendar query joins the hearing status alias, including attorney filter', async () => {
+  assert.equal((await api('/hearings/calendar?startDate=2026-11-01&endDate=2026-11-30&attorneyId=A0001')).status, 200);
+  assert.match(calls.at(-1).sql, /JOIN hearing_status hs/);
+  assert.ok(calls.at(-1).params.includes('A0001'));
+});
+test('upload requires a file', async () => {
+  assert.equal((await api('/documents/upload', { method: 'POST' })).status, 400);
+});
+test('spoofed PNG contents are rejected and file is removed', async () => {
+  const dir = path.join(__dirname, '../uploads/documents');
+  const existing = new Set(fs.readdirSync(dir));
+  const form = new FormData(); form.append('document', new Blob(['not a PNG'], { type: 'image/png' }), 'bad.png');
+  assert.equal((await api('/documents/upload', { method: 'POST', form })).status, 400);
+  assert.deepEqual(new Set(fs.readdirSync(dir)), existing);
+});
+test('unsupported MIME is rejected before controller', async () => {
+  const form = new FormData(); form.append('document', new Blob(['text'], { type: 'text/plain' }), 'bad.txt');
+  assert.equal((await api('/documents/upload', { method: 'POST', form })).status, 400);
+});
+test('oversized file is rejected and partial storage removed', async () => {
+  const dir = path.join(__dirname, '../uploads/documents');
+  const existing = new Set(fs.readdirSync(dir));
+  const form = new FormData(); form.append('document', new Blob([new Uint8Array(25 * 1024 * 1024 + 1)], { type: 'image/png' }), 'big.png');
+  const r = await api('/documents/upload', { method: 'POST', form });
+  assert.equal(r.status, 400); assert.match(r.data.message, /25MB/);
+  assert.deepEqual(new Set(fs.readdirSync(dir)), existing);
+});
+test('upload commits parent and first version before scheduling OCR', async () => {
+  handler = uploadHandler;
+  const r = await api('/documents/upload', { method: 'POST', form: pngForm() });
+  assert.equal(r.status, 201); assert.equal(r.data.data.status, 'PENDING');
+  assert.deepEqual(transactions, ['begin', 'commit', 'release']); assert.equal(jobs.length, 1);
+  assert.ok(fs.existsSync(jobs[0][2]));
+});
+test('PDF MIME metadata fits the updated schema', async () => {
+  const schema = fs.readFileSync(path.join(__dirname, '../database.sql'), 'utf8');
+  assert.ok(Number(schema.match(/`file_type` varchar\((\d+)\)/)[1]) >= 'application/pdf'.length);
+});
+test('upload failure rolls back and removes uncommitted file', async () => {
+  const dir = path.join(__dirname, '../uploads/documents'); const existing = new Set(fs.readdirSync(dir));
+  handler = (sql, params) => { if (sql.includes('INSERT INTO document_version')) throw new Error('Synthetic failure'); return uploadHandler(sql, params); };
+  assert.equal((await api('/documents/upload', { method: 'POST', form: pngForm() })).status, 500);
+  assert.deepEqual(transactions, ['begin', 'rollback', 'release']); assert.equal(jobs.length, 0);
+  assert.deepEqual(new Set(fs.readdirSync(dir)), existing);
+});
+test('new revision locks parent before choosing next number', async () => {
+  handler = uploadHandler;
+  const r = await api('/documents/42/versions', { method: 'POST', form: pngForm() });
+  assert.equal(r.status, 201); assert.equal(r.data.data.versionNumber, 3);
+  const lock = calls.findIndex(c => /SELECT document_code.*FOR UPDATE/.test(c.sql));
+  const max = calls.findIndex(c => c.sql.includes('MAX(version_no)'));
+  assert.ok(lock >= 0 && max > lock); assert.equal(jobs[0][1], 3);
+});
+test('download resolves current revision bytes and retains extension', async () => {
+  const file = path.join(temp, 'current.pdf'); fs.writeFileSync(file, 'CURRENT-REVISION');
+  handler = () => [{ file_path: file, file_name: 'current.pdf', doc_name: 'Evidence' }];
+  const r = await api('/documents/42/download');
+  assert.equal(r.status, 200); assert.equal(r.data, 'CURRENT-REVISION');
+  assert.match(calls.at(-1).sql, /dv.version_no = d.current_version_no/);
+  assert.match(r.headers.get('content-disposition'), /Evidence.pdf/);
+});
+test('failed extraction retry changes status conditionally before scheduling', async () => {
+  const file = path.join(temp, 'retry.png'); fs.writeFileSync(file, 'synthetic');
+  handler = sql => sql.includes('SELECT dv.file_path') ? [{ file_path: file }] : { affectedRows: 1 };
+  assert.equal((await api('/documents/42/versions/2/retry', { method: 'POST', body: {} })).status, 202);
+  assert.match(calls.at(-1).sql, /ocr_status = 'FAILED'/); assert.equal(jobs.length, 1);
+});
+test('running/completed extraction cannot be retried', async () => {
+  const file = path.join(temp, 'retry.png'); fs.writeFileSync(file, 'synthetic');
+  handler = sql => sql.includes('SELECT dv.file_path') ? [{ file_path: file }] : { affectedRows: 0 };
+  assert.equal((await api('/documents/42/versions/2/retry', { method: 'POST', body: {} })).status, 409);
+  assert.equal(jobs.length, 0);
+});
+test('search excludes deleted documents and uses bound values', async () => {
+  assert.equal((await api('/documents/search?q=affidavit&case_id=42')).status, 200);
+  const query = calls.at(-1); assert.match(query.sql, /d.is_deleted = 0/);
+  assert.deepEqual(query.params, ['affidavit', '%affidavit%', '42']);
+});
+test('global cleanup never deletes an already committed upload', async () => {
+  const file = path.join(temp, 'committed.png'); fs.writeFileSync(file, 'saved');
+  const errorHandler = require('../middleware/errorHandler');
+  await errorHandler(new Error('Post-commit error'), { uploadCommitted: true, file: { path: file } }, { status() { return this; }, json() {} }, () => {});
+  assert.ok(fs.existsSync(file));
+});
+
+test('current profile returns an active user for case-view role checks', async () => {
+  handler = () => [{ user_id: 1, role_id: 1, is_active: 1, username: 'Synthetic Admin' }];
+  const r = await api('/auth/me');
+  assert.equal(r.status, 200); assert.equal(r.data.data.role_id, 1);
+  assert.match(calls.at(-1).sql, /role_id, is_active/);
+});

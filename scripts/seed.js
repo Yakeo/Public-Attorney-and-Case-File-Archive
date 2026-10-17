@@ -80,8 +80,8 @@ const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
       );
       const docCode = docRes.insertId;
       await db.execute(
-        `INSERT INTO document_version (document_code, version_no, file_name, file_path, file_size, mime_type, extracted_text, uploaded_by, uploaded_at)
-         VALUES (?, 1, ?, ?, ?, ?, ?, ?, NOW())`,
+        `INSERT INTO document_version (document_code, version_no, file_name, file_path, file_size, mime_type, extracted_text, uploaded_by, uploaded_at, ocr_status)
+         VALUES (?, 1, ?, ?, ?, ?, ?, ?, NOW(), 'COMPLETED')`,
         [docCode, fname, fpath, text.length, 'text/plain', text, attorneyUserIds[0]]
       );
     }

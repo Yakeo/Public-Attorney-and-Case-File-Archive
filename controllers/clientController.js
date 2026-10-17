@@ -94,7 +94,7 @@ exports.updateClient = catchAsync(async (req, res, next) => {
 
 // Link a client to a case
 exports.linkClientToCase = catchAsync(async (req, res, next) => {
-  const { client_id } = req.params;
+  const { id: client_id } = req.params;
   const { cf_code, client_role } = req.body;
   if (!cf_code) return next(new CustomError('cf_code is required.', 400));
 
@@ -111,7 +111,7 @@ exports.linkClientToCase = catchAsync(async (req, res, next) => {
 });
 
 exports.listClientCases = catchAsync(async (req, res, next) => {
-  const { client_id } = req.params;
+  const { id: client_id } = req.params;
   const [rows] = await db.execute(
     `SELECT cc.client_case_id, cc.client_role, cf.cf_code, cf.cf_name, cf.filing_date, st.label AS status
      FROM client_case cc

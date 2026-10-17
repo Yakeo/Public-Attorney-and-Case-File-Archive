@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { randomUUID } = require('crypto');
 const CustomError = require('../utils/customError');
 
 // Ensure upload destination directory exists on disk before processing writes
@@ -15,10 +16,9 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Generate a collision-proof unique filename using timestamp + random integer
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `doc-${uniqueSuffix}${ext}`);
+    const extensions = { 'application/pdf': '.pdf', 'image/png': '.png',
+      'image/jpeg': '.jpg', 'image/jpg': '.jpg', 'image/tiff': '.tiff' };
+    cb(null, `doc-${randomUUID()}${extensions[file.mimetype]}`);
   }
 });
 
