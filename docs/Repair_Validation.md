@@ -1,6 +1,6 @@
 # Security, document workflow and OCR repair notes
 
-Date: 17 October 2026. Applies to this branch's repaired implementation; the earlier System Explainer describes the pre-repair code and is not an updated operational manual.
+Date: 17 October 2026. Updated after successful temporary-database integration testing. Applies to this branch's repaired implementation; the earlier System Explainer describes the pre-repair code and is not an updated operational manual.
 
 ## Implemented
 
@@ -70,7 +70,7 @@ This marks PENDING/PROCESSING jobs FAILED while retaining their files and existi
 - Tests exercise real Express routing/middleware/controllers with a fake database, actual bcrypt/JWT behavior, upload validation/size cleanup, rollback and commit handling, current revision download bytes, conditional retries, frontend event logic in a fake DOM, and shared authenticated multipart/download helpers.
 - OCR tests exercise persisted state transitions with fake recognition and fake database writes, worker cleanup, empty/failed recognition, corrupt PDFs and conditional claiming. The text-PDF test uses a genuine generated PDF and the real installed PDF parser; it does not mock parser output.
 - Actual non-mocked server smoke checks: `/health` 200, `/ready` 503, raw `/uploads` 404, unauthenticated documents 401, landing page 200. The 503 confirms database unavailability rather than reporting false readiness.
-- `npm run test:integration`: **one suite explicitly skipped**, because this workspace has no reachable MySQL/MariaDB server. A direct configured connection attempt returned ECONNREFUSED. This is not counted as a database-backed pass.
+- Initial attempt: integration was skipped because the configured local database returned ECONNREFUSED. Follow-up: a private temporary MariaDB server was provisioned, and the integration suite now passes with **9 subtests plus the parent test (10 reported passes), 0 failures, 0 skips**. The normal application database configuration was not changed.
 
 ## Real database test harness
 
@@ -83,13 +83,13 @@ MYSQL_TEST_USER=YOUR_TEST_USER \
 npm run test:integration
 ```
 
-Set MYSQL_TEST_PASSWORD and MYSQL_TEST_PORT in the environment if required. This is a one-shot integration test, not a server to leave running.
+Set MYSQL_TEST_PASSWORD and MYSQL_TEST_PORT in the environment if required. For a Unix-socket-only test server, set MYSQL_TEST_SOCKET to its socket path; the test connection uses that instead of TCP. This is a one-shot integration test, not a server to leave running.
 
-The harness checks a legacy-schema migration with text preservation, default registration roles, login, client linking, hearing SQL, upload metadata, version advancement and latest-file downloads on real SQL. It disables background OCR scheduling to isolate storage tests; it does not certify recognition quality or browser workflows. The harness has been syntax-checked but **has not executed its database subtests in this environment**.
+The harness checks a legacy-schema migration with text preservation, default registration roles, login/profile access, client linking, hearing SQL, upload metadata, version advancement, concurrent revision uploads, latest-file downloads, and access revocation after account demotion/deactivation on real SQL. It disables background OCR scheduling to isolate storage tests; it does not certify recognition quality or browser workflows. The harness **has executed successfully against MariaDB 10.8.3** in this environment. This verifies this MariaDB version, not every Oracle MySQL or production-server configuration.
 
 ## Remaining verification and limitations
 
-- Migration execution, real SQL/foreign keys, concurrent revision uploads and complete browser workflows still need the reachable test database.
+- Migration execution, the exercised SQL/foreign-key paths and two concurrent revision uploads now pass on temporary MariaDB 10.8.3. Broader concurrency stress, the production database version/configuration and complete real-browser workflows remain unverified.
 - Real scanned-PDF/image recognition and language-model availability need testing. English recognition is configured; handwriting, poor scans and mixed text/image PDFs remain quality limitations. The existing less-than-50-character PDF fallback heuristic is retained.
 - Jobs are not durable, globally concurrency-limited or automatically resumed. Status persistence and offline recovery make failure visible, but do not substitute for a production queue.
 - Hearing conflict detection still uses a one-hour start-time window. Update-time conflict prevention and fully serialized concurrent hearing scheduling remain follow-up work, not certified protections in this patch.
@@ -101,4 +101,38 @@ The harness checks a legacy-schema migration with text preservation, default reg
 
 ## Illustrated manual status
 
-The Word user manual with screenshots remains deferred. The requested gate was verified working workflows, not merely passing isolated tests. Once a real database is available, run the integration harness and role-specific browser workflows, fix any remaining issues, and capture screenshots using synthetic records. Do not use mock screenshots to imply a fully verified live system.
+The Word user manual with screenshots remains deferred. The requested gate was verified working workflows, not merely passing isolated tests. Real-database integration has now passed. Next run role-specific real-browser workflows and actual scanned-PDF/image recognition, fix any remaining issues, and capture screenshots using synthetic records. Do not use mock screenshots to imply a fully verified live system.
+
+
+## Temporary database follow-up: successful
+
+A real MariaDB 10.8.3 server was initialized under the ignored `.cache/mariadb/` directory. The development-only binary was obtained from the `SoftwareVerde/java-mariadb-linux` GitHub repository, whose README identifies it as precompiled MariaDB 10.8.3. Downloaded server parts were checked against their Git blob IDs before assembly. This is test provenance, not a recommendation to deploy that old third-party binary in production.
+
+Source Git tree: `490463720eece054d4eb3b3037a1fcda771cfedd`.
+
+The server ran with `--skip-networking`, accepting only a private Unix socket under a directory with mode 0700. It opened no TCP/public port. Test credentials were local disposable defaults, not credentials from the user's database. No change was made to `.env`.
+
+Executed:
+
+```bash
+PACFAS_MYSQL_TEST=1 \
+MYSQL_TEST_SOCKET="$PWD/.cache/mariadb/run/db.sock" \
+MYSQL_TEST_USER=root \
+npm run test:integration
+```
+
+Results:
+
+1. Legacy schema migration preserved useful text, marked unfinished extraction FAILED, and enforced revision uniqueness.
+2. Active account login verified an actual bcrypt hash and issued a token.
+3. Public registration stored role 5 even when role 1 was requested.
+4. Client creation, case linking and linked-case listing executed successfully.
+5. Hearing creation, per-case listing and calendar listing executed successfully.
+6. PDF MIME metadata fit the database, revision 2 became current, and downloads returned its bytes.
+7. The active profile endpoint returned the current database account role.
+8. Two concurrent revision uploads returned distinct versions 3 and 4; the current pointer became 4 and download bytes matched that revision.
+9. Demoting an account denied archive access despite its older admin token; deactivation denied profile access.
+
+After the run, a direct database query confirmed **zero disposable `pacfas_test_*` databases remained**. The temporary server was then stopped. Downloaded binaries and database files are ignored and are not committed. Background OCR scheduling was deliberately disabled in these storage integration tests; the PDF payload used for upload/download checks is signature-valid synthetic content, not a recognition-quality fixture. Real embedded-text PDF parsing remains covered by the separate passing regression test.
+
+`npm test` was rerun after this follow-up: **52 passed, 0 failed, 0 skipped**. No application defect was found by these additional database checks, so this follow-up changes the test harness and validation notes, not production behavior.

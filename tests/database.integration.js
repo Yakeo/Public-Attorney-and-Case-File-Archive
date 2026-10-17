@@ -19,6 +19,7 @@ test('real MySQL/MariaDB migration and core HTTP workflows', {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'pacfas-mysql-'));
   const options = {
     host: process.env.MYSQL_TEST_HOST || '127.0.0.1', port: Number(process.env.MYSQL_TEST_PORT) || 3306,
+    socketPath: process.env.MYSQL_TEST_SOCKET || undefined,
     user: process.env.MYSQL_TEST_USER || 'root', password: process.env.MYSQL_TEST_PASSWORD || '',
     multipleStatements: true, connectTimeout: 5000
   };
@@ -54,7 +55,7 @@ test('real MySQL/MariaDB migration and core HTTP workflows', {
     const app = require('../app');
     server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
     const base = `http://127.0.0.1:${server.address().port}/api/v1`;
-    let token;
+    let token, uploadedDocId;
     async function req(endpoint, method = 'GET', body) {
       const headers = token ? { authorization: `Bearer ${token}` } : {};
       const form = body instanceof FormData;
@@ -94,6 +95,7 @@ test('real MySQL/MariaDB migration and core HTTP workflows', {
       // Signature-valid but intentionally not a complete PDF: parser is not invoked in this SQL test.
       const r = await req('/documents/upload', 'POST', form('ORIGINAL'));
       assert.equal(r.status, 201); const docId = (await r.json()).data.documentId;
+      uploadedDocId = docId;
       const revision = await req(`/documents/${docId}/versions`, 'POST', form('LATEST'));
       assert.equal(revision.status, 201); assert.equal((await revision.json()).data.versionNumber, 2);
       const [rows] = await pool.execute('SELECT file_path FROM document_version WHERE document_code=?', [docId]);
@@ -101,6 +103,41 @@ test('real MySQL/MariaDB migration and core HTTP workflows', {
       const downloaded = await req(`/documents/${docId}/download`); assert.equal(downloaded.status, 200);
       assert.match(await downloaded.text(), /LATEST/);
     });
+    await t.test('active profile loads current account state from real storage', async () => {
+      const response = await req('/auth/me');
+      assert.equal(response.status, 200);
+      assert.equal((await response.json()).data.role_id, 1);
+    });
+    await t.test('concurrent revision uploads receive distinct consecutive version numbers', async () => {
+      assert.ok(uploadedDocId, 'Initial upload fixture must exist');
+      function revision(marker) {
+        const data = new FormData();
+        data.append('document', new Blob([`%PDF-1.4\n${marker}`], { type: 'application/pdf' }), 'revision.pdf');
+        return data;
+      }
+      const responses = await Promise.all([
+        req(`/documents/${uploadedDocId}/versions`, 'POST', revision('CONCURRENT-A')),
+        req(`/documents/${uploadedDocId}/versions`, 'POST', revision('CONCURRENT-B'))
+      ]);
+      responses.forEach(response => assert.equal(response.status, 201));
+      const bodies = await Promise.all(responses.map(response => response.json()));
+      assert.deepEqual(bodies.map(body => body.data.versionNumber).sort(), [3, 4]);
+      const [rows] = await pool.execute('SELECT current_version_no FROM document WHERE document_code=?', [uploadedDocId]);
+      assert.equal(rows[0].current_version_no, 4);
+      const [versions] = await pool.execute('SELECT version_no, file_path FROM document_version WHERE document_code=? ORDER BY version_no', [uploadedDocId]);
+      versions.forEach(version => files.add(version.file_path));
+      assert.deepEqual(versions.map(version => version.version_no), [1, 2, 3, 4]);
+      const downloaded = await req(`/documents/${uploadedDocId}/download`);
+      assert.equal(downloaded.status, 200);
+      assert.equal(await downloaded.text(), fs.readFileSync(versions[3].file_path, 'utf8'));
+    });
+    await t.test('demotion and deactivation revoke access despite an existing admin token', async () => {
+      await pool.execute('UPDATE user_account SET role_id=5 WHERE user_id=?', [user.insertId]);
+      assert.equal((await req('/cases')).status, 403);
+      await pool.execute('UPDATE user_account SET is_active=0 WHERE user_id=?', [user.insertId]);
+      assert.equal((await req('/auth/me')).status, 401);
+    });
+
   } finally {
     if (server) await new Promise(resolve => server.close(resolve));
     if (pool) {
