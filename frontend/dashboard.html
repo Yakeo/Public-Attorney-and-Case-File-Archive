@@ -163,7 +163,43 @@
         <input type="text" id="caseTitleInput" required placeholder="e.g., People vs. Santos">
       </div>
 
-      <p class="text-muted">After saving, open the case to link a client from the Clients register.</p>
+      <section class="case-client-intake" aria-labelledby="caseClientHeading">
+        <h3 id="caseClientHeading">Client</h3>
+        <p class="text-muted">Choose an existing client, add a new client now, or link one later.</p>
+        <div class="form-group">
+          <label for="caseClientMode">Client for this case</label>
+          <select id="caseClientMode" required>
+            <option value="" selected disabled>Choose how to add the client...</option>
+            <option value="existing">Choose an existing client</option>
+            <option value="new">Add a new client</option>
+            <option value="later">Link a client later</option>
+          </select>
+        </div>
+        <div id="existingCaseClientGroup" class="form-group" hidden>
+          <label for="existingCaseClient">Existing client</label>
+          <select id="existingCaseClient" required disabled>
+            <option value="">Select a client...</option>
+          </select>
+          <p id="caseClientOptionsStatus" class="text-muted" role="status"></p>
+        </div>
+        <div id="newCaseClientFields" class="case-client-fields" hidden>
+          <div class="form-group"><label for="newClientFname">First name</label><input id="newClientFname" type="text" maxlength="30" data-required="true" required></div>
+          <div class="form-group"><label for="newClientMname">Middle name</label><input id="newClientMname" type="text" maxlength="50"></div>
+          <div class="form-group"><label for="newClientLname">Last name</label><input id="newClientLname" type="text" maxlength="30" data-required="true" required></div>
+          <div class="form-group"><label for="newClientBirthDate">Birth date</label><input id="newClientBirthDate" type="date" data-required="true" required></div>
+          <div class="form-group"><label for="newClientGender">Gender</label><input id="newClientGender" type="text" maxlength="20"></div>
+          <div class="form-group"><label for="newClientEmail">Email</label><input id="newClientEmail" type="email" maxlength="255"></div>
+          <div class="form-group"><label for="newClientPhone">Contact number</label><input id="newClientPhone" type="tel" maxlength="20"></div>
+          <div class="form-group"><label for="newClientPurok">Purok</label><input id="newClientPurok" type="text" maxlength="20"></div>
+          <div class="form-group"><label for="newClientBarangay">Barangay</label><input id="newClientBarangay" type="text" maxlength="50"></div>
+          <div class="form-group"><label for="newClientCity">City</label><input id="newClientCity" type="text" maxlength="30"></div>
+          <div class="form-group"><label for="newClientRegion">Region</label><input id="newClientRegion" type="text" maxlength="30"></div>
+        </div>
+        <div id="caseClientRoleGroup" class="form-group" hidden>
+          <label for="caseClientRole">Client role in this case</label>
+          <input id="caseClientRole" type="text" maxlength="20" placeholder="Plaintiff / Defendant / Petitioner">
+        </div>
+      </section>
 
       <div class="form-group">
         <label for="caseStatusSelectInput">Initial Status</label>

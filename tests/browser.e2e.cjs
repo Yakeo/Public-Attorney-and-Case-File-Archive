@@ -91,15 +91,22 @@ async function login(email, pass = password) {
     await page.locator('#loginForm button[type="submit"]').click(); await page.waitForURL('**/dashboard.html');
     await waitText(page.locator('#userDisplayName'), 'Demo Administrator');
   });
-  await step('Create a case through the drawer and verify the saved record', async () => {
+  await step('Create a case with a new client through the drawer and verify both records', async () => {
     await page.locator('#btnCreateCase').click(); await page.locator('#caseCategorySelectInput').selectOption('1');
     await page.locator('#caseTitleInput').fill('Demo Estate Documentation');
     await page.locator('#caseDescriptionInput').fill('Fictional training case. No real client information.');
+    await page.locator('#caseClientMode').selectOption('new');
+    await page.locator('#newClientFname').fill('Case Intake');
+    await page.locator('#newClientLname').fill('Citizen');
+    await page.locator('#newClientBirthDate').fill('1991-05-12');
+    await page.locator('#caseClientRole').fill('Petitioner');
     assert.match(await page.locator('#caseNumberPreview').inputValue(), /^CIVIL-/);
     await shot('03-create-case.png', page.locator('#createCaseDrawer'));
     const response = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/api/v1/cases');
     await page.locator('#createCaseForm button[type="submit"]').click(); const r = await response;
-    assert.equal(r.status(), 201); caseId = (await r.json()).data.case_id;
+    assert.equal(r.status(), 201);
+    const created = (await r.json()).data; caseId = created.case_id;
+    assert.ok(created.client_id, 'new client is linked to the case atomically');
     await waitText(page.locator('#casesTableBody'), 'Demo Estate Documentation'); await shot('04-dashboard.png');
   });
   await step('Create a client through the Clients page', async () => {

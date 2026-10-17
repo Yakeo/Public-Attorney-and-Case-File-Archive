@@ -328,6 +328,74 @@ test('attorneys can register a private case without gaining counsel-assignment p
   assert.equal((await api('/cases/42/attorneys', { role: 2, method: 'POST', body: { attorney_id: 'D0001' } })).status, 403);
 });
 
+test('case intake exposes only minimal client names to case creators, not the client management route', async () => {
+  handler = sql => sql.includes('FROM client ORDER BY')
+    ? [{ client_id: 14, fname: 'Amihan', mname: null, lname: 'Sample14' }]
+    : [];
+  const options = await api('/cases/client-options', { role: 2 });
+  assert.equal(options.status, 200);
+  assert.deepEqual(options.data.data, [{ client_id: 14, fname: 'Amihan', mname: null, lname: 'Sample14' }]);
+  assert.equal((await api('/clients', { role: 2 })).status, 403);
+});
+
+test('case creation links an existing client in the same transaction', async () => {
+  handler = (sql, params) => {
+    if (sql.includes('SELECT client_id FROM client WHERE client_id = ?')) return [{ client_id: 14 }];
+    if (sql.includes('SELECT code FROM case_category')) return [{ code: 'CIVIL' }];
+    return { insertId: 42, affectedRows: 1 };
+  };
+  const response = await api('/cases', {
+    role: 3, method: 'POST', body: { title: 'Linked intake case', client_id: 14, client_role: 'Petitioner' }
+  });
+  assert.equal(response.status, 201);
+  assert.equal(response.data.data.client_id, 14);
+  assert.deepEqual(transactions, ['begin', 'commit', 'release']);
+  assert.deepEqual(calls.find(call => call.sql.includes('INSERT INTO client_case')).params, [14, 42, 'Petitioner']);
+});
+
+test('case creation can create a private client profile and link it atomically', async () => {
+  handler = sql => {
+    if (sql.includes('SELECT role_id FROM role WHERE role_id = 4')) return [];
+    if (sql.includes('SELECT code FROM case_category')) return [{ code: 'FAMILY' }];
+    if (sql.includes('INSERT INTO user_account')) return { insertId: 71 };
+    if (sql.startsWith('INSERT INTO client\n')) return { insertId: 72 };
+    return { insertId: 42, affectedRows: 1 };
+  };
+  const response = await api('/cases', {
+    role: 2, method: 'POST', body: {
+      title: 'New client intake case', client_role: 'Petitioner',
+      new_client: { fname: 'Maya', mname: 'S.', lname: 'Sample', birth_date: '1992-04-03', city: 'Davao City' }
+    }
+  });
+  assert.equal(response.status, 201);
+  assert.equal(response.data.data.client_id, 72);
+  assert.deepEqual(transactions, ['begin', 'commit', 'release']);
+  const accountInsert = calls.find(call => call.sql.includes('INSERT INTO user_account'));
+  assert.match(accountInsert.sql, /VALUES \(4, \?, \?, NULL, 0\)/);
+  const clientInsert = calls.find(call => call.sql.includes('INSERT INTO client'));
+  assert.equal(clientInsert.params[1], 'Maya');
+  assert.equal(clientInsert.params[4], '1992-04-03');
+  assert.deepEqual(calls.find(call => call.sql.includes('INSERT INTO client_case')).params, [72, 42, 'Petitioner']);
+});
+
+test('failed case-client link rolls back the new case and client records', async () => {
+  handler = sql => {
+    if (sql.includes('SELECT role_id FROM role WHERE role_id = 4')) return [{ role_id: 4 }];
+    if (sql.includes('SELECT code FROM case_category')) return [{ code: 'CIVIL' }];
+    if (sql.includes('INSERT INTO user_account')) return { insertId: 71 };
+    if (sql.includes('INSERT INTO client ') && sql.includes('VALUES')) return { insertId: 72 };
+    if (sql.includes('INSERT INTO client_case')) throw new Error('link failed');
+    return { insertId: 42, affectedRows: 1 };
+  };
+  const response = await api('/cases', {
+    role: 1, method: 'POST', body: {
+      title: 'Rollback intake case', new_client: { fname: 'Maya', lname: 'Sample', birth_date: '1992-04-03' }
+    }
+  });
+  assert.equal(response.status, 500);
+  assert.deepEqual(transactions, ['begin', 'rollback', 'release']);
+});
+
 test('upload stores searchable original filename separately from the physical storage path', async () => {
   handler = uploadHandler;
   assert.equal((await api('/documents/upload', { method: 'POST', form: pngForm() })).status, 201);

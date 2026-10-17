@@ -22,6 +22,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cancelBtn = document.getElementById('cancelDrawerBtn');
   const createCaseForm = document.getElementById('createCaseForm');
   const drawerErrorBanner = document.getElementById('drawerErrorBanner');
+  const caseClientMode = document.getElementById('caseClientMode');
+  const existingCaseClientGroup = document.getElementById('existingCaseClientGroup');
+  const existingCaseClient = document.getElementById('existingCaseClient');
+  const caseClientOptionsStatus = document.getElementById('caseClientOptionsStatus');
+  const newCaseClientFields = document.getElementById('newCaseClientFields');
+  const caseClientRoleGroup = document.getElementById('caseClientRoleGroup');
+  let clientOptionsLoaded = false;
 
   let localCases = [];
 
@@ -130,11 +137,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (dashCategoryFilter) dashCategoryFilter.addEventListener('change', () => refreshCases());
   if (dashPriorityFilter) dashPriorityFilter.addEventListener('change', () => refreshCases());
 
+  async function loadCaseClientOptions() {
+    if (!existingCaseClient || clientOptionsLoaded) return;
+    if (caseClientOptionsStatus) caseClientOptionsStatus.textContent = 'Loading clients...';
+    try {
+      const response = await apiRequest('/cases/client-options');
+      const clients = response.data || [];
+      existingCaseClient.innerHTML = '<option value="">Select a client...</option>' + clients.map(client => {
+        const fullName = [client.fname, client.mname, client.lname].filter(Boolean).join(' ');
+        return `<option value="${escapeHtml(client.client_id)}">${escapeHtml(fullName)}</option>`;
+      }).join('');
+      existingCaseClient.disabled = clients.length === 0;
+      if (caseClientOptionsStatus) caseClientOptionsStatus.textContent = clients.length
+        ? `${clients.length} client${clients.length === 1 ? '' : 's'} available.`
+        : 'No clients are registered yet. Choose “Add a new client” instead.';
+      clientOptionsLoaded = true;
+    } catch (error) {
+      if (caseClientOptionsStatus) caseClientOptionsStatus.textContent = error.message || 'Could not load clients.';
+      clientOptionsLoaded = false;
+    }
+  }
+
+  function updateClientIntakeMode() {
+    const mode = caseClientMode ? caseClientMode.value : '';
+    if (existingCaseClientGroup) existingCaseClientGroup.hidden = mode !== 'existing';
+    if (newCaseClientFields) newCaseClientFields.hidden = mode !== 'new';
+    if (caseClientRoleGroup) caseClientRoleGroup.hidden = !['existing', 'new'].includes(mode);
+    if (existingCaseClient) existingCaseClient.required = mode === 'existing';
+    if (newCaseClientFields) {
+      for (const input of newCaseClientFields.querySelectorAll('input')) {
+        input.required = mode === 'new' && input.dataset.required === 'true';
+      }
+    }
+    if (mode === 'existing') loadCaseClientOptions();
+  }
+
+  if (caseClientMode) caseClientMode.addEventListener('change', updateClientIntakeMode);
+  updateClientIntakeMode();
+
   // --- Drawer Control Functions ---
   function openDrawer() {
     if (!drawer || !backdrop) return;
     if (drawerErrorBanner) drawerErrorBanner.classList.add('hidden');
     if (createCaseForm) createCaseForm.reset();
+    updateClientIntakeMode();
 
     drawer.classList.add('open');
     backdrop.classList.add('active');
@@ -182,11 +228,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         category_id: Number(categoryId),
         description: document.getElementById('caseDescriptionInput') ? document.getElementById('caseDescriptionInput').value.trim() : ''
       };
+      const clientMode = caseClientMode ? caseClientMode.value : 'later';
+      const clientRole = document.getElementById('caseClientRole')?.value.trim() || null;
+      if (clientMode === 'existing') {
+        payload.client_id = existingCaseClient ? existingCaseClient.value : '';
+        if (!payload.client_id) {
+          if (drawerErrorBanner) {
+            drawerErrorBanner.textContent = 'Choose an existing client, or switch to “Add a new client.”';
+            drawerErrorBanner.classList.remove('hidden');
+          }
+          return;
+        }
+        payload.client_role = clientRole;
+      } else if (clientMode === 'new') {
+        payload.new_client = {
+          fname: document.getElementById('newClientFname').value.trim(),
+          mname: document.getElementById('newClientMname').value.trim() || null,
+          lname: document.getElementById('newClientLname').value.trim(),
+          birth_date: document.getElementById('newClientBirthDate').value,
+          gender: document.getElementById('newClientGender').value.trim() || null,
+          email: document.getElementById('newClientEmail').value.trim() || null,
+          contact_number: document.getElementById('newClientPhone').value.trim() || null,
+          purok: document.getElementById('newClientPurok').value.trim() || null,
+          barangay: document.getElementById('newClientBarangay').value.trim() || null,
+          city: document.getElementById('newClientCity').value.trim() || null,
+          region: document.getElementById('newClientRegion').value.trim() || null
+        };
+        payload.client_role = clientRole;
+      }
 
       try {
-        await apiRequest('/cases', 'POST', payload);
+        const response = await apiRequest('/cases', 'POST', payload);
         closeDrawer();
-        showToast('Case created successfully.', 'success');
+        showToast(response.data?.client_id ? 'Case and client saved successfully.' : 'Case created successfully.', 'success');
         await refreshCases();
       } catch (err) {
         if (drawerErrorBanner) {
