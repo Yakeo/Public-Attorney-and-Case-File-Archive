@@ -7,7 +7,7 @@ const CustomError = require('../utils/customError');
 
 // 1. Register a new user
 exports.register = catchAsync(async (req, res, next) => {
-  const { username, email, password, role_id } = req.body;
+  const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
     return next(new CustomError('Please provide username, email, and password.', 400));
@@ -30,7 +30,7 @@ exports.register = catchAsync(async (req, res, next) => {
   // Insert user into DB
   const [result] = await db.execute(
     'INSERT INTO user_account (username, email, password_hash, role_id) VALUES (?, ?, ?, ?)',
-    [username, email, passwordHash, role_id || 5] // Default to standard user role
+    [username, email, passwordHash, 5] // Default to standard user role
   );
 
   const metaR = getRequestMeta(req);
@@ -54,11 +54,11 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   const [users] = await db.execute(
-    'SELECT user_id, username, email, password_hash, role_id FROM user_account WHERE email = ?',
+    'SELECT user_id, username, email, password_hash, role_id, is_active FROM user_account WHERE email = ?',
     [email]
   );
 
-  if (users.length === 0) {
+  if (users.length === 0 || !users[0].is_active) {
     return next(new CustomError('Invalid credentials', 401));
   }
 
@@ -96,11 +96,11 @@ exports.login = catchAsync(async (req, res, next) => {
 // 3. Get Current User Profile
 exports.getProfile = catchAsync(async (req, res, next) => {
   const [users] = await db.execute(
-    'SELECT user_id, username, email, role_id FROM user_account WHERE user_id = ?',
+    'SELECT user_id, username, email, role_id, is_active FROM user_account WHERE user_id = ?',
     [req.user.user_id]
   );
 
-  if (users.length === 0) {
+  if (users.length === 0 || !users[0].is_active) {
     return next(new CustomError('User profile not found.', 404));
   }
 

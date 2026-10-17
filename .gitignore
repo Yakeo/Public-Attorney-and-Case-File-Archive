@@ -1,4 +1,18 @@
-node_modules/
+# Local configuration and generated data (existing tracked files need separate cleanup)
 .env
-/uploads/
+.env.*
+!.env.example
+node_modules/
+uploads/
 /private-storage/
+.cache/
+.venv/
+__pycache__/
+*.log
+
+# OCR language caches must be provisioned separately
+*.traineddata
+
+# Ignore extracted/generated demo data, but publish the requested downloadable ZIP
+demo-data/*
+!demo-data/PACFAS-Defense-Demo.zip

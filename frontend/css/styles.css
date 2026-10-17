@@ -596,6 +596,23 @@ h1, h2, h3, .heading-display {
 /* ==========================================================================
    6. Modals
    ========================================================================== */
+.auth-pending body { visibility: hidden; }
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+}
+.modal > .modal-content {
+  position: relative;
+  width: min(100%, 560px);
+  box-sizing: border-box;
+}
 .modal-content {
   background: var(--bg-card-solid) !important;
   color: var(--text-main) !important;
@@ -839,3 +856,43 @@ body.drawer-open .dashboard-main-content {
   border-color: var(--accent-primary);
   box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
 }
+
+/* Keep archive controls usable on narrow screens without widening the page. */
+.table-responsive { max-width: 100%; overflow-x: auto; }
+.toolbar-left, .toolbar-right { display: flex; flex-wrap: wrap; gap: .65rem; min-width: 0; max-width: 100%; }
+.side-drawer:not(.open) { display: none; }
+.side-drawer { overflow-y: auto; }
+.drawer-form { height: auto; flex: 1; }
+.modal-content { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.modal-content input[type="checkbox"] { width: auto !important; }
+.ocr-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.doc-header { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.doc-card { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .container { padding-left: 1rem; padding-right: 1rem; }
+  .navbar { width: calc(100% - 2rem); padding: .85rem; border-radius: 20px; flex-wrap: wrap; gap: .8rem; position: relative; top: 0; }
+  .nav-links { flex-wrap: wrap; gap: .7rem; max-width: 100%; }
+  .nav-brand, .nav-links, .toolbar-card, .toolbar-left, .toolbar-right { min-width: 0; }
+  .logo-link { flex-wrap: wrap; }
+  .user-greeting { flex-basis: 100%; }
+  .toolbar-card { padding: 1rem; }
+  .toolbar-left, .toolbar-right { width: 100%; }
+  .toolbar-left input, .toolbar-left select { max-width: 100%; width: 100%; box-sizing: border-box; }
+  .table-card, .card { padding: 1rem; min-width: 0; }
+  .data-table { min-width: 640px; }
+  .card-header-flex { flex-wrap: wrap; gap: .65rem; }
+  .grid-container, .profile-content-grid { grid-template-columns: minmax(0, 1fr); }
+  .hero-search-card { flex-direction: column; align-items: stretch; }
+  .hero-search-card input, .hero-search-card select { min-width: 0; max-width: 100%; width: 100%; }
+  .hero-title { font-size: 2rem; }
+  .side-drawer, .modal-content { padding: 1.2rem; }
+}
+
+/* OCR-backed document retrieval: separate from case title/description filters. */
+.document-search { margin-bottom: 1.5rem; }
+.document-search label { display: block; margin: .6rem 0; }
+.document-search-controls, .document-search-actions { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+.document-search-controls input { flex: 1 1 220px; min-width: 0; padding: .8rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-card-solid); color: var(--text-main); }
+.document-search .doc-card { margin-top: .75rem; overflow-wrap: anywhere; }
+.document-search-actions a { text-decoration: none; }
+.doc-card:target { outline: 2px solid var(--accent-primary); scroll-margin-top: 1rem; }

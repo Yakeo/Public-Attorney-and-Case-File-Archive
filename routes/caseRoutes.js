@@ -23,14 +23,14 @@ router.post(
 router.delete('/:id/public-summary', authenticateToken, authorizeRoles(1), publicSummaryController.unpublishSummary);
 
 // Protect remaining case endpoints
-router.use(authenticateToken);
+router.use(authenticateToken, authorizeRoles(1, 2, 3));
 
-router.post('/', authenticateToken, authorizeRoles(1, 3), caseController.createCase);
+router.post('/', authenticateToken, authorizeRoles(1, 2, 3), caseController.createCase);
 router.get('/', caseController.getAllCases);
 router.get('/:id', caseController.getCaseById);
 
 // Case <-> Attorney assignment
-router.post('/:id/attorneys', caseAssignmentController.assignAttorney);
+router.post('/:id/attorneys', authorizeRoles(1, 3), caseAssignmentController.assignAttorney);
 router.get('/:id/attorneys', caseAssignmentController.listCaseAttorneys);
 
 // Case <-> Client links

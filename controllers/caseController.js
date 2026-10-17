@@ -20,7 +20,7 @@ const shapeCase = (row) => ({
   id: row.cf_code,
   case_number: `${row.category_code || 'CASE'}-${row.creation_date ? new Date(row.creation_date).getFullYear() : new Date().getFullYear()}-${String(row.cf_code).padStart(4, '0')}`,
   title: row.cf_name,
-  client_name: row.created_by_user || null,
+  client_name: row.client_name || null,
   status: row.status_label || row.status_code || 'Active',
   created_at: row.creation_date || row.filing_date || null,
   document_count: row.document_count || 0
@@ -45,8 +45,8 @@ exports.createCase = catchAsync(async (req, res, next) => {
 
   const [result] = await db.execute(
     `INSERT INTO case_file
-      (cf_name, description, category_id, status_id, priority_id, filing_date, creation_date, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, CURDATE(), ?)`,
+      (cf_name, description, category_id, status_id, priority_id, filing_date, creation_date, created_by, is_visible)
+     VALUES (?, ?, ?, ?, ?, ?, CURDATE(), ?, 0)`,
     [name, description || null, resolvedCategoryId, resolvedStatusId, resolvedPriorityId, filing_date || null, created_by]
   );
 
@@ -86,6 +86,9 @@ exports.getAllCases = catchAsync(async (req, res, next) => {
       pr.code AS priority_code,
       pr.label AS priority_label,
       u.username AS created_by_user,
+      (SELECT GROUP_CONCAT(CONCAT_WS(' ', c.fname, c.lname) ORDER BY c.lname, c.fname SEPARATOR ', ')
+       FROM client_case cc JOIN client c ON c.client_id = cc.client_id
+       WHERE cc.cf_code = cf.cf_code) AS client_name,
       (SELECT COUNT(*) FROM document d WHERE d.cf_code = cf.cf_code AND d.is_deleted = 0) AS document_count
      FROM case_file cf
      LEFT JOIN case_category cat ON cf.category_id = cat.id
@@ -94,7 +97,7 @@ exports.getAllCases = catchAsync(async (req, res, next) => {
      LEFT JOIN user_account u ON cf.created_by = u.user_id
   `;
   const params = [];
-  const conditions = ['cf.is_deleted = 0', 'cf.is_visible = 1'];
+  const conditions = ['cf.is_deleted = 0'];
 
   if (q) {
     conditions.push('(cf.cf_name LIKE ? OR cf.description LIKE ?)');
@@ -151,7 +154,10 @@ exports.getCaseById = catchAsync(async (req, res, next) => {
       pr.code AS priority_code,
       pr.label AS priority_label,
       cf.created_by,
-      u.username AS created_by_user
+      u.username AS created_by_user,
+      (SELECT GROUP_CONCAT(CONCAT_WS(' ', c.fname, c.lname) ORDER BY c.lname, c.fname SEPARATOR ', ')
+       FROM client_case cc JOIN client c ON c.client_id = cc.client_id
+       WHERE cc.cf_code = cf.cf_code) AS client_name
      FROM case_file cf
      LEFT JOIN case_category cat ON cf.category_id = cat.id
      LEFT JOIN case_status st ON cf.status_id = st.id

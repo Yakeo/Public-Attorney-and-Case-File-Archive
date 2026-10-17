@@ -1,0 +1,67 @@
+PACFAS — A5 FOLDED / STAPLED MANUAL
+Prepared 17 October 2026
+
+FILES
+PACFAS_Manual_A5.pdf: 24 A5 pages in ordinary reading order.
+PACFAS_Booklet_A4.pdf: 12 A4 landscape sides, already imposed for a 6-sheet booklet.
+PACFAS_Manual_A5_Editable.docx: editable manuscript; Word may reflow pages.
+Use the PDFs, not the editable manuscript, for the controlled print layout.
+
+RECOMMENDED: PRINT THE ALREADY-ARRANGED A4 FILE
+1. Open PACFAS_Booklet_A4.pdf in a PDF reader (Adobe Reader is suitable).
+2. Paper: A4. Orientation: landscape. Scale: Actual size / 100%.
+3. Use ONE PDF page per physical side. Choose ordinary printing, NOT Booklet
+   and NOT 2 pages per sheet. The two A5 pages are already placed on each side.
+4. Enable double-sided printing, FLIP ON SHORT EDGE (landscape).
+5. TEST FIRST: print only PDF pages 1–2 as one duplex sheet. Its front should
+   read [24 | 1], and its back [2 | 23]. Hold the cover upright and turn the
+   sheet left-to-right like a book: the back must also read upright.
+6. If the back is upside down, change the duplex flip setting and repeat the
+   one-sheet test. Printer driver wording can vary. Do not print all six sheets
+   until the fold and orientation are correct.
+7. Once correct, print all 12 PDF pages as six duplex sheets. Use normal order,
+   no reverse order and no automatic booklet rearrangement. Collate per copy.
+8. Nest the sheets with [24 | 1] outermost and [14 | 11] innermost. Fold them
+   together at the centre. Page 1 is the front cover; page 24 is the back cover.
+9. Crease firmly with a ruler. Saddle-staple at two positions along the fold,
+   about 50 mm from the top and bottom. Use a long-reach stapler, or have a
+   print shop do the two staples. Supervise any manual staple work carefully.
+
+IF YOUR PRINTER DOES NOT AUTOMATICALLY PRINT BOTH SIDES
+The required page order does not change, but tray/feed orientation is specific
+ to the printer. Test only PDF page 1 (front), reinsert that SAME sheet and
+print PDF page 2 (back). Note the successful feed direction. Repeat one sheet
+at a time for PDF pages 3/4, 5/6, 7/8, 9/10 and 11/12. This is slower but avoids
+assuming whether your printer reverses or flips its output stack.
+
+ALTERNATIVE: LET ADOBE READER DO THE BOOKLET ARRANGEMENT
+Use PACFAS_Manual_A5.pdf (NOT the A4 imposed file). Choose Booklet, A4 paper,
+left binding, both sides. Test one sheet before printing the full booklet.
+Do not mix this method with the already-imposed A4 file.
+
+PAPER AND FINISH
+Ordinary A4 paper is sufficient; 80–100 gsm is comfortable for six folded
+sheets. Use the same stock for the included cover. No trimming is required.
+Margins keep text away from ordinary printer non-printable edges. Colours are
+optional: the manual also uses headings, labels and tables for grayscale use.
+
+SCREENSHOTS / CONTENT
+Screenshots contain fictional training records. Most are recovered from the
+earlier manual, with the login dialog recaptured after the modal fix. Current
+account permissions, login redirects and normal startup text were checked
+against the current source. This is not a new full end-to-end OCR certification.
+Use administrator-supplied credentials; no real passwords are printed here.
+
+SHEET MAP (left | right, viewed upright on that side)
+Sheet 1 front: 24 |  1
+Sheet 1 back :  2 | 23
+Sheet 2 front: 22 |  3
+Sheet 2 back :  4 | 21
+Sheet 3 front: 20 |  5
+Sheet 3 back :  6 | 19
+Sheet 4 front: 18 |  7
+Sheet 4 back :  8 | 17
+Sheet 5 front: 16 |  9
+Sheet 5 back : 10 | 15
+Sheet 6 front: 14 | 11
+Sheet 6 back : 12 | 13
