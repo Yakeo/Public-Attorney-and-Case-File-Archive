@@ -12,5 +12,6 @@ __pycache__/
 # OCR language caches must be provisioned separately
 *.traineddata
 
-# Generated fictional defense package and installation artifacts
-demo-data/
+# Ignore extracted/generated demo data, but publish the requested downloadable ZIP
+demo-data/*
+!demo-data/PACFAS-Defense-Demo.zip
