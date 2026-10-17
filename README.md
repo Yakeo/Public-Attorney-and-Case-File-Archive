@@ -48,3 +48,11 @@ to your database. Ordinary runtime and regression tests do not need this tooling
 Printed manuals, thesis documents, screenshots, documentation generators, and
 the legacy bulk seeder were removed from the current tree. Previous copies
 remain in Git history. Tests, migrations, and application source are retained.
+
+## Printable user handbook
+
+Download the [manual print pack](printable-manual/PACFAS_Print_Manual.zip) for
+an A5 folded/stapled handbook printed on six duplex A4 sheets. The pack includes
+a normal reading PDF, an already-arranged A4 booklet PDF, an editable Word copy,
+and a one-sheet test/printing guide. Follow `printable-manual/PRINTING.txt`;
+do not apply your printer's Booklet option to the already-arranged A4 file.
