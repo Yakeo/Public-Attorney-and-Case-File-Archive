@@ -11,3 +11,6 @@ __pycache__/
 
 # OCR language caches must be provisioned separately
 *.traineddata
+
+# Generated fictional defense package and installation artifacts
+demo-data/
