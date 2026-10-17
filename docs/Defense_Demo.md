@@ -43,7 +43,11 @@ Use the latest repository **and** `PACFAS-Defense-Demo.zip`. The repository cont
    npm run demo:verify -- --database pacfas_defense_demo --confirm-demo
    ```
 
-   **Do not import `database.sql` first.** The importer initializes a new database itself. An existing database must have **no tables**, or be a matching completed installation made by this importer. It refuses an unmarked existing archive, even if its name ends in `_demo`.
+   **Do not import `database.sql` first.** The importer initializes a new database itself.
+   An existing database must have **no tables**, or be a matching completed installation
+   made by this importer. It refuses an unmarked existing archive, even if its name ends
+   in `_demo`. Rerunning this command on a matching completed installation adds any missing
+   approved synthetic public summaries/PDFs without reseeding cases or documents.
 
 6. Start the isolated demo:
 
