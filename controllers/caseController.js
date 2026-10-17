@@ -171,48 +171,5 @@ exports.getCaseById = catchAsync(async (req, res, next) => {
   });
 });
 
-// Public, non-confidential case summaries (optionally filtered by attorney)
-exports.getPublicCases = catchAsync(async (req, res, next) => {
-  const { attorney_id } = req.query;
-
-  let sql = `
-    SELECT
-      cf.cf_code,
-      cf.cf_name,
-      cf.filing_date,
-      cf.creation_date,
-      st.label AS status_label,
-      st.code AS status_code,
-      cat.label AS category_label
-    FROM case_file cf
-    LEFT JOIN case_status st ON cf.status_id = st.id
-    LEFT JOIN case_category cat ON cf.category_id = cat.id
-  `;
-  const params = [];
-  const conditions = ['cf.is_deleted = 0', 'cf.is_visible = 1'];
-
-  if (attorney_id) {
-    sql += ` JOIN case_attorney ca ON cf.cf_code = ca.cf_code`;
-    conditions.push('ca.attorney_id = ?');
-    params.push(attorney_id);
-  }
-
-  sql += ` WHERE ` + conditions.join(' AND ') + ` ORDER BY cf.creation_date DESC`;
-
-  const [rows] = await db.execute(sql, params);
-
-  const shaped = rows.map((r) => ({
-    id: r.cf_code,
-    case_number: r.cf_code,
-    title: r.cf_name,
-    status: r.status_label || r.status_code || 'Active',
-    created_at: r.creation_date || r.filing_date,
-    description: null
-  }));
-
-  res.status(200).json({
-    status: 'success',
-    results: shaped.length,
-    data: shaped
-  });
-});
+// Public case-summary routes are implemented in publicSummaryController.
+// They intentionally read only explicitly approved public summary records.

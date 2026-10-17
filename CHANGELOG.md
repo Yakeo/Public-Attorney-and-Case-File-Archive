@@ -2,6 +2,16 @@
 
 All notable changes to the Attorney Directory and Case File Archive System (PACFAS) are documented here.
 
+## [2.7.0] - 2026-10-17
+
+### Added
+- Explicitly approved, versioned public case summaries with admin-only publish/unpublish controls.
+- Public summary PDF downloads served through an approval-checked API endpoint from private storage.
+- Public directory notice and handling-attorney display for approved summaries.
+
+### Security
+- Public case lookup no longer derives disclosure from case visibility/status alone; only current approved summary records are returned.
+
 ## [2.6.0] - 2026-10-16
 
 ### Added

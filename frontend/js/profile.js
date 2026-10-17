@@ -93,12 +93,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     publicCasesList.innerHTML = cases.map(c => `
       <div class="case-item-card" style="background: var(--bg-card); padding: 1.25rem; border-radius: 16px; border: 1px solid var(--border-color); margin-bottom: 1rem;">
-        <div class="case-item-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <div class="case-item-header" style="margin-bottom: 0.5rem;">
           <span class="font-mono text-amber">${escapeHtml(c.case_number)}</span>
-          <span class="status-tag status-${(c.status || '').toLowerCase()}">${escapeHtml(c.status || 'Active')}</span>
         </div>
         <h4>${escapeHtml(c.title)}</h4>
-        <p class="case-summary text-muted" style="font-size: 0.88rem; margin-top: 0.35rem;">${escapeHtml(c.description || 'No public summary available.')}</p>
+        <details style="margin-top:0.65rem;">
+          <summary style="cursor:pointer;">View public summary</summary>
+          <p class="case-summary text-muted" style="font-size: 0.88rem; margin-top: 0.5rem; white-space:pre-wrap;">${escapeHtml(c.summary)}</p>
+          <p class="text-muted text-xs"><strong>Handling attorney:</strong> ${escapeHtml(c.handling_attorney)}</p>
+          ${c.pdf_available ? `<a class="btn-secondary" href="/api/v1/cases/public/${encodeURIComponent(c.id)}/summary.pdf">Download approved public summary (PDF)</a>` : ''}
+        </details>
       </div>
     `).join('');
   }

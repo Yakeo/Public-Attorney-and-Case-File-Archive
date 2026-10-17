@@ -52,7 +52,7 @@ Start your MySQL/MariaDB server, then:
 mysql -u root -p -e "CREATE DATABASE pacfas_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 mysql -u root -p pacfas_db < database.sql
 ```
-This creates all 18 tables and seeds roles, statuses, priorities, and 3 sample attorneys.
+This creates the application tables—including versioned public-summary records—and seeds roles, statuses, priorities, and 3 sample attorneys.
 
 ### 3.4 Configure environment
 Edit `.env` (or create one):
@@ -123,12 +123,20 @@ Open http://localhost:3000 in your browser.
 - Create and list client profiles.
 - Link clients to cases with a role (Plaintiff/Defendant/Petitioner).
 
-### 6.4 Attorney directory (public)
+### 6.4 Attorney directory and public case summaries
 - Browse and search attorneys by name/specialization.
-- View an attorney's profile and public case history.
+- Public case lookup lists only case summaries explicitly published by an administrator.
+- Each public card has a “View public summary” section and, when an approved PDF is available, a download link for that summary only.
+- The public view displays the handling attorney selected during publication and the notice: “Only information approved for public release is displayed.”
+- Internal case records, client details, OCR text, and original evidence are not included in the public-summary API response.
 
 ### 6.5 Admin
 - Create new attorney accounts (auto-creates linked user).
+- Publish a public summary by supplying a public title, approved summary text, handling attorney ID associated with the case, and an approved PDF. Publishing is an explicit approval action; it creates a versioned record.
+- Unpublish the latest version to remove it from public lookup and downloads. Older versions remain in private storage/history.
+- The PDF is stored outside the publicly served `/uploads` directory and is streamed only through the approved-summary download endpoint.
+
+For existing databases, apply `migrations/20261017_public_case_summaries.sql` before using the public-summary administration feature.
 
 ### 6.6 Search
 - Document text search: `GET /api/v1/documents/search?q=keyword`.
@@ -147,7 +155,11 @@ All endpoints are under `/api/v1`. Protected routes require `Authorization: Bear
 | GET | /cases | Yes | List cases (filters supported) |
 | POST | /cases | Yes | Create case |
 | GET | /cases/:id | Yes | Case details |
-| GET | /cases/public | No | Public case summaries |
+| GET | /cases/public | No | List explicitly approved public summaries |
+| GET | /cases/public/:id/summary.pdf | No | Download the currently approved public-summary PDF only |
+| POST | /cases/:id/public-summary | Admin | Publish a new approved summary version (multipart PDF upload) |
+| DELETE | /cases/:id/public-summary | Admin | Unpublish the current public summary |
+| GET | /cases/public-summaries/manage | Admin | List latest summary versions for administration |
 | GET | /clients | Yes | List clients |
 | POST | /clients | Yes | Create client |
 | GET | /documents | Yes | List documents (by case_id) |
@@ -173,7 +185,7 @@ All endpoints are under `/api/v1`. Protected routes require `Authorization: Bear
 ---
 
 ## 9. Limitations
-- Cloud/S3 storage not implemented; files are stored on local disk under `uploads/`.
+- Cloud/S3 storage is not implemented; internal uploads are stored under `uploads/`, while approved public-summary PDFs are stored separately under `private-storage/` and served through an approval-checked endpoint.
 - No automated tests yet.
 - Email notifications not implemented.
 - Scanned PDF OCR quality depends on scan resolution.
