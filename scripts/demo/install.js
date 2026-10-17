@@ -58,6 +58,128 @@ async function receiptFor(db) {
   const [rows] = await db.execute('SELECT manifest_sha256, receipt_json FROM demo_dataset WHERE dataset_key=?', [VERSION]);
   return rows[0] || null;
 }
+function summaryPdfBuffer(title, paragraphs) {
+  const wrap = (text, width = 82) => {
+    const lines = [];
+    let line = '';
+    for (const word of String(text).split(/\s+/)) {
+      if (line && `${line} ${word}`.length > width) { lines.push(line); line = word; }
+      else line = line ? `${line} ${word}` : word;
+    }
+    if (line) lines.push(line);
+    return lines;
+  };
+  const escape = text => String(text).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  const lines = [title, ...paragraphs.flatMap(text => wrap(text))];
+  const commands = ['BT', '/F1 10 Tf', '48 744 Td', '14 TL', ...lines.map((line, i) => `${i ? 'T* ' : ''}(${escape(line)}) Tj`), 'ET'].join('\n');
+  const stream = Buffer.from(commands, 'ascii');
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${stream.length} >>\nstream\n${commands}\nendstream`
+  ];
+  const chunks = [Buffer.from('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n', 'binary')];
+  const offsets = [0];
+  let offset = chunks[0].length;
+  objects.forEach((object, i) => {
+    offsets.push(offset);
+    const chunk = Buffer.from(`${i + 1} 0 obj\n${object}\nendobj\n`, 'binary');
+    chunks.push(chunk); offset += chunk.length;
+  });
+  const xrefOffset = offset;
+  const xref = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.slice(1).map(value => `${String(value).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  chunks.push(Buffer.from(xref, 'ascii'));
+  return Buffer.concat(chunks);
+}
+
+function publicSummaryFor(plan, c) {
+  const attorney = plan.attorneys[c.primaryAttorney];
+  const title = c.title;
+  const paragraphs = [
+    'SYNTHETIC DEMO DATA - NOT A REAL LEGAL RECORD',
+    `This approved public training summary describes ${c.ref}, a fictional PACFAS demonstration case.`,
+    'All people, events, dates, and records are invented for software demonstration purposes.',
+    `Handling attorney: ${attorney.fname} ${attorney.lname}.`,
+    'This summary contains no client contact details, attorney communications, evidence attachments, or OCR text. It is not legal advice or a real court record.'
+  ];
+  return {
+    title,
+    summaryText: paragraphs.join('\n\n'),
+    paragraphs,
+    handlingAttorneyId: attorney.id,
+    pdfFileName: `${c.ref}-Approved-Public-Summary.pdf`
+  };
+}
+
+// Backfill the deliberately public demo cases without reseeding or changing case data.
+// Existing summary rows (including a prior unpublish) are preserved and never overwritten.
+async function seedPublicSummaries(db, database, plan, receipt, root = ROOT) {
+  const pending = [];
+  const createdFiles = [];
+  const directory = path.resolve(root, 'private-storage', 'public-summaries', database);
+
+  for (const c of plan.cases.filter(item => item.public)) {
+    const caseId = receipt.cases[c.key];
+    const [existing] = await db.execute(
+      'SELECT public_case_summary_id FROM public_case_summary WHERE cf_code = ? LIMIT 1',
+      [caseId]
+    );
+    if (existing.length) continue;
+
+    const summary = publicSummaryFor(plan, c);
+    const bytes = summaryPdfBuffer(summary.title, summary.paragraphs);
+    const filePath = path.join(directory, summary.pdfFileName);
+    await fs.mkdir(directory, { recursive: true });
+    try {
+      await fs.writeFile(filePath, bytes, { flag: 'wx' });
+      createdFiles.push(filePath);
+    } catch (error) {
+      if (error.code !== 'EEXIST' || digest(await fs.readFile(filePath)) !== digest(bytes)) throw error;
+    }
+    pending.push({ c, caseId, summary, filePath });
+  }
+
+  if (!pending.length) return 0;
+  let transactionStarted = false;
+  let commitAttempted = false;
+  try {
+    await db.beginTransaction();
+    transactionStarted = true;
+    for (const { c, caseId, summary, filePath } of pending) {
+      const [cases] = await db.execute(
+        'SELECT cf_code FROM case_file WHERE cf_code = ? AND is_deleted = 0 AND is_visible = 1 FOR UPDATE',
+        [caseId]
+      );
+      if (!cases.length) throw new Error(`Expected public demo case ${c.ref} is missing or no longer marked visible.`);
+      const [assigned] = await db.execute(
+        'SELECT attorney_id FROM case_attorney WHERE cf_code = ? AND attorney_id = ? LIMIT 1',
+        [caseId, summary.handlingAttorneyId]
+      );
+      if (!assigned.length) throw new Error(`Expected handling attorney is not assigned to ${c.ref}.`);
+      await db.execute(
+        `INSERT INTO public_case_summary
+         (cf_code, version_no, public_title, summary_text, handling_attorney_id,
+          pdf_file_path, pdf_file_name, approved_by, approved_at, is_current)
+         VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        [caseId, summary.title, summary.summaryText, summary.handlingAttorneyId,
+          filePath, summary.pdfFileName, receipt.users.admin, `${plan.date} 12:00:00`]
+      );
+    }
+    commitAttempted = true;
+    await db.commit();
+    return pending.length;
+  } catch (error) {
+    if (transactionStarted) { try { await db.rollback(); } catch {} }
+    // If commit outcome is ambiguous, retain the PDFs so committed rows never point to missing files.
+    if (!commitAttempted) {
+      for (const filePath of createdFiles) await fs.rm(filePath, { force: true }).catch(() => {});
+    }
+    throw error;
+  }
+}
+
 async function verifyInstall(db, bundle, root = ROOT) {
   const { plan, hash } = await loadBundle(bundle);
   const marker = await receiptFor(db);
@@ -120,7 +242,11 @@ async function install(db, database, bundle, root = ROOT) {
       marker = { manifest_sha256: hash, receipt_json: null };
     }
     if (!marker || marker.manifest_sha256 !== hash) throw new Error('Target is not an empty or matching generator-owned demo database. Refusing to modify it.');
-    if (marker.receipt_json) return { ...(await verifyInstall(db, bundle, root)), alreadyInstalled: true };
+    if (marker.receipt_json) {
+      const receipt = JSON.parse(marker.receipt_json);
+      const publicSummariesAdded = await seedPublicSummaries(db, database, plan, receipt, root);
+      return { ...(await verifyInstall(db, bundle, root)), alreadyInstalled: true, publicSummariesAdded };
+    }
     for (const table of ['user_account', 'case_file', 'client', 'document', 'attorney']) {
       const [rows] = await db.query(`SELECT COUNT(*) AS n FROM ${table}`);
       if (rows[0].n) throw new Error('Incomplete install contains records; preserve it and inspect before retrying.');
@@ -182,7 +308,8 @@ async function install(db, database, bundle, root = ROOT) {
     await fs.rename(stage, dest); published = true; stage = null;
     commitAttempted = true;
     await db.commit();
-    return { ...(await verifyInstall(db, bundle, root)), alreadyInstalled: false };
+    const publicSummariesAdded = await seedPublicSummaries(db, database, plan, receipt, root);
+    return { ...(await verifyInstall(db, bundle, root)), alreadyInstalled: false, publicSummariesAdded };
   } catch (error) {
     try { await db.rollback(); } catch {}
     if (published && !commitAttempted) await fs.rm(dest, { recursive: true, force: true });
@@ -194,4 +321,4 @@ async function install(db, database, bundle, root = ROOT) {
     await db.execute('SELECT RELEASE_LOCK(?)', [`pacfas-demo:${database}`]);
   }
 }
-module.exports = { assertTarget, schemaForDemo, loadBundle, receiptFor, verifyInstall, install, ROOT };
+module.exports = { assertTarget, schemaForDemo, loadBundle, receiptFor, publicSummaryFor, summaryPdfBuffer, seedPublicSummaries, verifyInstall, install, ROOT };

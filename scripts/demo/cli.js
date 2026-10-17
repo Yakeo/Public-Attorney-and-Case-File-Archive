@@ -44,7 +44,8 @@ async function main(args = process.argv.slice(2)) {
     const result = options.command === 'seed'
       ? await install(db, options.database, bundle)
       : await verifyInstall(db, bundle);
-    console.log(`${result.alreadyInstalled ? 'Already installed; no records duplicated.' : 'Demo dataset verified.'} ${JSON.stringify(result.counts)}`);
+    console.log(`${result.alreadyInstalled ? 'Already installed; no case/document records duplicated.' : 'Demo dataset verified.'} ${JSON.stringify(result.counts)}`);
+    if (result.publicSummariesAdded) console.log(`Added ${result.publicSummariesAdded} approved synthetic public summaries and private PDFs.`);
     if (options.command === 'seed') console.log('Read demo-data/defense-v1/START-HERE.txt for demo logins and the walkthrough.');
   } finally { await db.end(); }
   if (options.command === 'start') {

@@ -54,7 +54,9 @@ function starterGuide(plan) {
     `2. Run npm ci (include development dependencies if also rebuilding documents).\n` +
     `3. Configure MySQL connection in .env; keep real database records separate.\n` +
     `4. Run: npm run demo:seed -- --database pacfas_defense_demo --confirm-demo\n` +
-    `   This only initializes an EMPTY demo database. Never import database.sql over real data.\n` +
+    `   This initializes an empty demo DB, or safely backfills missing public demo summaries\n` +
+    `   on a matching completed install. It never reseeds cases/documents. Never import database.sql\n` +
+    `   over real data.\n` +
     `5. Preferred: npm run demo:start -- --database pacfas_defense_demo --confirm-demo\n` +
     `   This selects the demo DB and offline model without changing .env.\n` +
     `   Alternatively, set DB_NAME=pacfas_defense_demo and TESSDATA_PATH to the absolute\n` +
@@ -77,7 +79,8 @@ function starterGuide(plan) {
     `  Sign in as staff to demonstrate rejection; admin override is explicit.\n` +
     `- DEMO-17 and DEMO-18: deliberately public fictional summaries; the other 16 remain private.\n` +
     `- Accounts for counsel can view the archive and create cases, but cannot assign counsel or manage clients.\n\n` +
-    `Existing complete installs are recognized, not duplicated or overwritten. This generator\n` +
+    `Existing complete installs are recognized, not reseeded or overwritten. Rerunning demo:seed\n` +
+    `adds only missing approved public-summary records/PDFs and is safe to repeat. This generator\n` +
     `has NO wipe/reset command. For a fresh rehearsal use another EMPTY *_demo database.\n` +
     `Files are copied to uploads/defense-v1/<database>/ with portable relative DB paths.\n` +
     `The ZIP does not contain Node modules, database binaries, your .env, or real records.\n`;

@@ -38,16 +38,33 @@ test('real demo install, idempotence, isolation, HTTP downloads/search/privacy a
     await t.test('fresh isolated DB contains precisely 5 attorneys, 18 cases, 90 documents and 92 real versions', async () => {
       const result = await install(db, dbname, bundle); receipt = result.receipt;
       assert.equal(result.alreadyInstalled, false);
-      for (const [table, expected] of [['attorney', 5], ['client', 18], ['case_file', 18], ['document', 90], ['document_version', 92], ['hearing_schedule', 8]]) {
+      for (const [table, expected] of [['attorney', 5], ['client', 18], ['case_file', 18], ['document', 90], ['document_version', 92], ['hearing_schedule', 8], ['public_case_summary', 2]]) {
         const [rows] = await db.query(`SELECT COUNT(*) AS n FROM ${table}`); assert.equal(rows[0].n, expected, table);
       }
       const [inactive] = await db.query('SELECT COUNT(*) AS n FROM user_account WHERE is_active=0');
       assert.equal(inactive[0].n, 18);
       assert.ok(Object.values(receipt.paths).every(p => !path.isAbsolute(p) && !p.includes('\\')));
     });
+    await t.test('matching pre-summary demo install is backfilled without reseeding cases/documents', async () => {
+      const ids = ['case-17', 'case-18'].map(key => receipt.cases[key]);
+      const [summaryFiles] = await db.query(
+        'SELECT pdf_file_path FROM public_case_summary WHERE cf_code IN (?, ?)', ids
+      );
+      assert.equal(summaryFiles.length, 2);
+      await db.execute('DELETE FROM public_case_summary WHERE cf_code IN (?, ?)', ids);
+      for (const row of summaryFiles) await fs.rm(row.pdf_file_path, { force: true });
+
+      const result = await install(db, dbname, bundle);
+      assert.equal(result.alreadyInstalled, true);
+      assert.equal(result.publicSummariesAdded, 2);
+      const [cases] = await db.query('SELECT COUNT(*) AS n FROM case_file'); assert.equal(cases[0].n, 18);
+      const [versions] = await db.query('SELECT COUNT(*) AS n FROM document_version'); assert.equal(versions[0].n, 92);
+      const [summaries] = await db.query('SELECT COUNT(*) AS n FROM public_case_summary'); assert.equal(summaries[0].n, 2);
+    });
     await t.test('identical rerun verifies/skips instead of duplicating or wiping data', async () => {
       const result = await install(db, dbname, bundle);
-      assert.equal(result.alreadyInstalled, true); assert.deepEqual(result.receipt, receipt);
+      assert.equal(result.alreadyInstalled, true); assert.equal(result.publicSummariesAdded, 0);
+      assert.deepEqual(result.receipt, receipt);
       const [rows] = await db.query('SELECT COUNT(*) AS n FROM document_version'); assert.equal(rows[0].n, 92);
     });
     await t.test('manifest fingerprint mismatch is rejected without rewriting records', async () => {
@@ -83,6 +100,15 @@ test('real demo install, idempotence, isolation, HTTP downloads/search/privacy a
       const pub = await req('/cases/public', null); assert.equal(pub.status, 200);
       const data = (await pub.json()).data; assert.equal(data.length, 2);
       assert.ok(data.every(c => /DEMO-1[78]/.test(c.title || c.cf_name)));
+      const irisCases = (await (await req('/cases/public?attorney_id=D0003', null)).json()).data;
+      assert.equal(irisCases.length, 1);
+      assert.match(irisCases[0].title, /DEMO-18 - Public Training Summary B/);
+      assert.equal(irisCases[0].handling_attorney, 'Atty. Iris Demo');
+      const publicPdf = await req(`/cases/public/${receipt.cases['case-18']}/summary.pdf`, null);
+      assert.equal(publicPdf.status, 200);
+      assert.match(publicPdf.headers.get('content-type'), /application\/pdf/);
+      const pdfBytes = Buffer.from(await publicPdf.arrayBuffer());
+      assert.equal(pdfBytes.toString('ascii', 0, 5), '%PDF-');
       assert.equal((await req('/documents', null)).status, 401);
       assert.equal((await req('/documents', publicToken)).status, 403);
       assert.equal((await req('/cases', publicToken)).status, 403);
@@ -169,5 +195,6 @@ test('real demo install, idempotence, isolation, HTTP downloads/search/privacy a
       await db.end();
     }
     await fs.rm(path.join(ROOT, 'uploads/defense-v1', dbname), { recursive: true, force: true });
+    await fs.rm(path.join(ROOT, 'private-storage/public-summaries', dbname), { recursive: true, force: true });
   }
 });

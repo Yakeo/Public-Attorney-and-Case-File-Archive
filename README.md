@@ -23,7 +23,11 @@ The repository no longer distributes `.env` or `node_modules`.
 
 The ZIP is at [`demo-data/PACFAS-Defense-Demo.zip`](demo-data/PACFAS-Defense-Demo.zip).
 Extract it into this repository root. See [the setup guide](docs/Defense_Demo.md)
-for the guarded one-time import. You do not need Python/document generators.
+for the guarded import and safe summary backfill. You do not need Python/document
+generators. To add the new approved demo summaries to an already-installed matching
+demo DB, pull the app update and rerun
+`npm run demo:seed -- --database pacfas_defense_demo --confirm-demo`; it preserves
+cases and documents.
 
 For normal startup after importing, set `DB_NAME=pacfas_defense_demo` and
 `TESSDATA_PATH` to the absolute `demo-data/defense-v1/language-data` folder in

@@ -4,7 +4,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const os = require('node:os');
 const { createPlan, documentContent, dateOffset } = require('../scripts/demo/plan');
-const { assertTarget, schemaForDemo, loadBundle } = require('../scripts/demo/install');
+const { assertTarget, schemaForDemo, loadBundle, publicSummaryFor, summaryPdfBuffer, seedPublicSummaries } = require('../scripts/demo/install');
 const { parseArgs, connectionOptions } = require('../scripts/demo/cli');
 const { pdfBuffer, parse, starterGuide, buildBundle } = require('../scripts/demo/files');
 
@@ -19,6 +19,73 @@ test('demo plan is deterministic, fictional, balanced and private by default', (
   assert.equal(plan.cases[0].primaryAttorney, plan.cases[5].primaryAttorney);
   assert.equal(dateOffset(plan.date, 14), '2026-10-31');
 });
+test('approved public demo summaries are synthetic and identify DEMO-17/18 handling attorneys', async () => {
+  const plan = createPlan();
+  const publicCases = plan.cases.filter(c => c.public);
+  const summaries = publicCases.map(c => publicSummaryFor(plan, c));
+  assert.deepEqual(summaries.map(s => s.handlingAttorneyId), ['D0002', 'D0003']);
+  assert.match(summaries[1].title, /DEMO-18 - Public Training Summary B/);
+  assert.match(summaries[1].summaryText, /SYNTHETIC DEMO DATA/);
+  assert.doesNotMatch(summaries[1].summaryText, /Amihan Sample18|client18@example\.test/);
+
+  const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'pacfas-public-summary-'));
+  try {
+    const file = path.join(temp, 'demo18-public-summary.pdf');
+    await fs.writeFile(file, summaryPdfBuffer(summaries[1].title, summaries[1].paragraphs));
+    const text = await parse(file);
+    assert.match(text, /DEMO-18 - Public Training Summary B/);
+    assert.match(text, /Iris Demo/);
+    assert.match(text, /NOT A REAL LEGAL RECORD/);
+  } finally {
+    await fs.rm(temp, { recursive: true, force: true });
+  }
+});
+
+test('summary seeding adds missing demo rows/PDFs once and preserves the case dataset', async () => {
+  const plan = createPlan();
+  const ids = Object.fromEntries(plan.cases.map((c, i) => [c.key, 1700 + i]));
+  const existingSummaries = new Map();
+  let commits = 0;
+  const db = {
+    async execute(sql, params) {
+      if (sql.includes('FROM public_case_summary WHERE cf_code')) {
+        return [existingSummaries.has(params[0]) ? [{ public_case_summary_id: existingSummaries.get(params[0]).id }] : []];
+      }
+      if (sql.includes('FROM case_file WHERE cf_code')) return [[{ cf_code: params[0] }]];
+      if (sql.includes('FROM case_attorney WHERE cf_code')) {
+        const c = plan.cases.find(item => ids[item.key] === params[0]);
+        return [c && plan.attorneys[c.primaryAttorney].id === params[1] ? [{ attorney_id: params[1] }] : []];
+      }
+      if (sql.includes('INSERT INTO public_case_summary')) {
+        const [caseId, title, summaryText, handlingAttorneyId, pdfPath, pdfName] = params;
+        existingSummaries.set(caseId, { id: existingSummaries.size + 1, title, summaryText, handlingAttorneyId, pdfPath, pdfName });
+        return [{ insertId: existingSummaries.size }];
+      }
+      throw new Error(`Unexpected demo summary query: ${sql}`);
+    },
+    async beginTransaction() {},
+    async commit() { commits++; },
+    async rollback() { throw new Error('Unexpected rollback'); }
+  };
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pacfas-demo-seed-'));
+  try {
+    const receipt = { cases: ids, users: { admin: 'D0001' } };
+    assert.equal(await seedPublicSummaries(db, 'unit_demo', plan, receipt, root), 2);
+    assert.equal(existingSummaries.size, 2);
+    assert.equal(commits, 1);
+    const existing18 = existingSummaries.get(ids['case-18']);
+    assert.match(existing18.title, /DEMO-18/);
+    assert.equal(existing18.handlingAttorneyId, 'D0003');
+    assert.match(existing18.summaryText, /SYNTHETIC DEMO DATA/);
+    assert.equal((await fs.readFile(existing18.pdfPath)).toString('ascii', 0, 5), '%PDF-');
+    assert.equal(await seedPublicSummaries(db, 'unit_demo', plan, receipt, root), 0);
+    assert.equal(commits, 1);
+    assert.equal(existingSummaries.get(ids['case-18']).pdfPath, existing18.pdfPath);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test('demo dates reject malformed and impossible dates', () => {
   for (const date of ['2026-02-30', '2026-13-01', 'not-a-date', '2026-1-1']) assert.throws(() => createPlan(date));
   assert.equal(createPlan('2024-02-29').date, '2024-02-29');
