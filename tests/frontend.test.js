@@ -14,6 +14,7 @@ async function harness({ failUpload = false } = {}) {
   const context = {
     document: { addEventListener: (event, fn) => { ready = fn; }, getElementById: id => nodes.get(id) || null },
     window: { location: { search: '?id=42' }, addEventListener() {} },
+    requireWorkspaceSession: async () => ({ role_id: 1 }),
     URLSearchParams, FormData, showToast() {},
     setTimeout: (fn, ms) => { timers.set(++nextTimer, { fn, ms }); return nextTimer; }, clearTimeout: id => timers.delete(id),
     apiDownload: async endpoint => downloads.push(endpoint),

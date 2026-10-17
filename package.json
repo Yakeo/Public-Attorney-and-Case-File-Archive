@@ -6,7 +6,6 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "seed": "node scripts/seed.js",
     "test": "node --test tests/*.test.js",
     "test:integration": "node --test tests/database.integration.js",
     "ocr:recover": "node scripts/recover-ocr.js",
@@ -16,7 +15,8 @@
     "demo:verify": "node scripts/demo/cli.js verify",
     "demo:start": "node scripts/demo/cli.js start",
     "test:demo": "node --test tests/demo.test.js",
-    "test:demo:integration": "node --test tests/demo.integration.js"
+    "test:demo:integration": "node --test tests/demo.integration.js",
+    "test:auth:browser": "node tests/auth.browser.cjs"
   },
   "keywords": [],
   "author": "",

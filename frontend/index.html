@@ -69,10 +69,10 @@
   </main>
 
   <!-- Staff/Attorney Login Modal -->
-  <div id="loginModal" class="modal hidden">
+  <div id="loginModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
     <div class="modal-content">
       <button id="closeLoginBtn" class="modal-close">&times;</button>
-      <h2>Staff Portal Sign In</h2>
+      <h2 id="loginTitle">Staff Portal Sign In</h2>
       <p class="subtitle">Enter authorized attorney or admin credentials.</p>
       
       <div id="loginError" class="error-banner hidden"></div>

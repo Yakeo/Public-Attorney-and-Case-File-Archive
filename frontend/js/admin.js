@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!await requireWorkspaceSession()) return;
   const list = document.getElementById('attorneyList');
   const form = document.getElementById('createAttorneyForm');
   const err = document.getElementById('adminError');

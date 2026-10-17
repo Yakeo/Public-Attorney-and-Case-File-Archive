@@ -1,4 +1,5 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!await requireWorkspaceSession()) return;
   const modal = document.getElementById('hearingModal');
   const form = document.getElementById('hearingForm');
   if (!modal || !form) return;

@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!await requireWorkspaceSession()) return;
   const urlParams = new URLSearchParams(window.location.search);
   const caseId = urlParams.get('id') || '101';
 

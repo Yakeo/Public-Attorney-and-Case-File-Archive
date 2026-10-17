@@ -1,5 +1,5 @@
 // Real Chromium + real SQL + real OCR. No API/database/recognizer mocks.
-// See docs/Browser_OCR_Validation.md for setup. Uses a NEW disposable database.
+// Requires separate Chromium tooling, OCR fixtures and a test MySQL instance. Uses a NEW disposable database.
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
@@ -8,7 +8,7 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const root = path.resolve(__dirname, '..');
 const fixtures = path.join(root, '.cache/e2e/fixtures');
-const screenshots = path.join(root, 'docs/manual-images');
+const screenshots = path.join(root, '.cache/e2e/screenshots');
 const results = [], errors = [];
 let admin, pool, server, browser, context, page, appDB, base, caseId, browserVersion, databaseVersion;
 const name = `pacfas_browser_${Date.now()}_${process.pid}`;

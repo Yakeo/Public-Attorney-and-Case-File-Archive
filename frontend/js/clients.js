@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!await requireWorkspaceSession()) return;
   const clientsList = document.getElementById('clientsList');
   const form = document.getElementById('createClientForm');
   const err = document.getElementById('clientError');

@@ -1,4 +1,0 @@
-# Optional tooling for synthetic fixtures and the illustrated Word manual.
-python-docx==1.2.0
-Pillow==13.0.0
-reportlab==5.0.1
