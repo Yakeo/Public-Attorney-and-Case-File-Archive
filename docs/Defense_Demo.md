@@ -18,7 +18,7 @@ Each case contains an intake summary, supporting statement, evidence inventory, 
 
 ## Install on your defense device
 
-Use the latest repository **and** `PACFAS-Defense-Demo.zip`. The repository contains the generator/importer; the generated ZIP is a separate download and is deliberately not tracked in Git.
+Use the latest repository **and** `PACFAS-Defense-Demo.zip`. The repository contains the generator/importer and the downloadable ZIP at `demo-data/PACFAS-Defense-Demo.zip`. You can download that file from GitHub, or find it inside a clone/download of this repository. Extract the inner demo ZIP into the repository root before seeding.
 
 1. Install **Node.js 22 or newer** and start your local MySQL/MariaDB installation, such as XAMPP's database service. Your database user needs permission to create a separate database and its tables.
 2. Extract the ZIP **into the repository root**. Check that `demo-data/defense-v1/manifest.json` exists; avoid an extra nested folder.

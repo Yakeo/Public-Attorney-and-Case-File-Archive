@@ -29,8 +29,8 @@ The builder performs genuine text extraction/OCR before writing completed status
 ## Artifact identity
 
 - Download: `demo-data/PACFAS-Defense-Demo.zip`
-- ZIP size: **2,528,801 bytes**
-- ZIP SHA-256: `441500493f7564a58756ea6fdf476ed0c8552d38563e0b5a7ad2257b02fd239e`
+- ZIP size: **2,528,850 bytes**
+- ZIP SHA-256: `c64a1e2ab406fc6323bbe2206405e445bb788a028d61b859f7e49a8c0173ab03`
 - Manifest SHA-256: `0932253ce71820f939517552763a75c95f809577eeb1e290337f5c90138c4244`
 - Reference date: **2026-10-17**
 - Files: **91 PDFs + 1 PNG**; 90 logical documents plus 2 additional revisions
@@ -41,6 +41,10 @@ The builder performs genuine text extraction/OCR before writing completed status
 
 Use the commands in [Defense_Demo.md](Defense_Demo.md). In this sandbox the English model was downloaded through the authenticated GitHub CLI and passed with `--language-data` because Node's direct HTTPS request reported a local certificate-chain error. TLS verification was **not** disabled. Two complete builds produced identical manifests, and the final ZIP was extracted into a new directory and installed/tested from that extracted bundle.
 
-Generated bundles, OCR models, test database binaries/data, and uploads are not committed to Git. Download the ZIP separately or rebuild with the checked-in scripts. The MariaDB mirror used for this isolated test was SoftwareVerde/java-mariadb-linux, with downloaded Git blobs checked by Git object SHA-1; it is not a recommended production installer.
+The requested downloadable ZIP is now committed at `demo-data/PACFAS-Defense-Demo.zip`; it contains the fictional records and licensed English model. Extracted bundles, test database binaries/data, and runtime uploads remain ignored. Download the ZIP from GitHub or rebuild with the checked-in scripts. The MariaDB mirror used for this isolated test was SoftwareVerde/java-mariadb-linux, with downloaded Git blobs checked by Git object SHA-1; it is not a recommended production installer.
 
 These checks cover the dataset, real API, database isolation/idempotence and OCR. They are not a new cross-browser/Windows certification or a legal-accuracy review. The previously delivered illustrated user manual and browser validation remain separate deliverables.
+
+## GitHub distribution update
+
+The package was regenerated from the checked-in builder on 2026-10-17 for permanent GitHub distribution. The walkthrough inside the ZIP now describes the tracked ZIP location. All 92 version-file hashes and the English model were validated again with `loadBundle`; the earlier database integration results above refer to the original dataset validation.
