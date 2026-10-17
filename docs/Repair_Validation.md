@@ -2,6 +2,8 @@
 
 Date: 17 October 2026. Updated after successful temporary-database integration testing. Applies to this branch's repaired implementation; the earlier System Explainer describes the pre-repair code and is not an updated operational manual.
 
+**Latest status:** Real-browser and real scanned-document OCR validation has now passed. See `docs/Browser_OCR_Validation.md` for the final scope, additional repairs and rerun instructions. The illustrated `docs/User_Manual.docx` is now available with 14 actual screenshots. The stage-by-stage notes below predate that final pass.
+
 ## Implemented
 
 - Public registration ignores client-supplied role IDs and always assigns role 5.
@@ -66,7 +68,7 @@ This marks PENDING/PROCESSING jobs FAILED while retaining their files and existi
 
 - `npm ci --no-audit --no-fund`: succeeded.
 - JavaScript syntax checks over controllers, routes, middleware, config, utilities, frontend scripts, tests and scripts: passed.
-- `npm test`: **52 passed, 0 failed, 0 skipped**.
+- `npm test`: **54 passed, 0 failed, 0 skipped**.
 - Tests exercise real Express routing/middleware/controllers with a fake database, actual bcrypt/JWT behavior, upload validation/size cleanup, rollback and commit handling, current revision download bytes, conditional retries, frontend event logic in a fake DOM, and shared authenticated multipart/download helpers.
 - OCR tests exercise persisted state transitions with fake recognition and fake database writes, worker cleanup, empty/failed recognition, corrupt PDFs and conditional claiming. The text-PDF test uses a genuine generated PDF and the real installed PDF parser; it does not mock parser output.
 - Actual non-mocked server smoke checks: `/health` 200, `/ready` 503, raw `/uploads` 404, unauthenticated documents 401, landing page 200. The 503 confirms database unavailability rather than reporting false readiness.
@@ -90,18 +92,18 @@ The harness checks a legacy-schema migration with text preservation, default reg
 ## Remaining verification and limitations
 
 - Migration execution, the exercised SQL/foreign-key paths and two concurrent revision uploads now pass on temporary MariaDB 10.8.3. Broader concurrency stress, the production database version/configuration and complete real-browser workflows remain unverified.
-- Real scanned-PDF/image recognition and language-model availability need testing. English recognition is configured; handwriting, poor scans and mixed text/image PDFs remain quality limitations. The existing less-than-50-character PDF fallback heuristic is retained.
+- Clear PNG/JPEG/TIFF recognition and a two-page scanned PDF now pass real recognition tests (see the latest browser report). English recognition is configured; handwriting, poor scans and mixed text/image PDFs remain quality limitations. The existing less-than-50-character PDF fallback heuristic is retained.
 - Jobs are not durable, globally concurrency-limited or automatically resumed. Status persistence and offline recovery make failure visible, but do not substitute for a production queue.
 - Hearing conflict detection still uses a one-hour start-time window. Update-time conflict prevention and fully serialized concurrent hearing scheduling remain follow-up work, not certified protections in this patch.
 - Per-case ownership/assignment authorization is not introduced; office roles share archive access. Public/client roles are denied the archive. Confirm this policy before any client portal deployment.
 - File-signature checks do not prove that an entire file is valid or free of malware. Recognition failures are reported separately from successful storage.
-- The existing case client-name display/persistence mismatch and broader business/UI behavior outside the repaired paths are not certified by this targeted suite.
-- No real-browser, mobile, accessibility, full audit persistence or disaster-recovery certification was completed.
+- Linked client names now display correctly and the silently ignored free-text creation field has been removed. Broader behavior outside the documented browser paths is not certified.
+- Primary real-browser flows and a 390-pixel dashboard smoke check now pass. Full accessibility, broad device coverage, audit persistence and disaster-recovery certification remain outside scope.
 - The repository already tracks `.env` and dependency files. New ignore rules prevent new generated files from being added, but do not remove tracked configuration or sanitize Git history. Review secret handling and rotate any exposed credentials before deployment; this patch does not copy or change existing credentials.
 
 ## Illustrated manual status
 
-The Word user manual with screenshots remains deferred. The requested gate was verified working workflows, not merely passing isolated tests. Real-database integration has now passed. Next run role-specific real-browser workflows and actual scanned-PDF/image recognition, fix any remaining issues, and capture screenshots using synthetic records. Do not use mock screenshots to imply a fully verified live system.
+The initial manual gate has now been completed for the documented primary workflows. `docs/User_Manual.docx` contains 14 real application screenshots and explicit limitations. `docs/Browser_OCR_Validation.md` records 20 passing real-browser/OCR checks; this does not certify every possible document, device or production condition.
 
 
 ## Temporary database follow-up: successful
@@ -135,4 +137,4 @@ Results:
 
 After the run, a direct database query confirmed **zero disposable `pacfas_test_*` databases remained**. The temporary server was then stopped. Downloaded binaries and database files are ignored and are not committed. Background OCR scheduling was deliberately disabled in these storage integration tests; the PDF payload used for upload/download checks is signature-valid synthetic content, not a recognition-quality fixture. Real embedded-text PDF parsing remains covered by the separate passing regression test.
 
-`npm test` was rerun after this follow-up: **52 passed, 0 failed, 0 skipped**. No application defect was found by these additional database checks, so this follow-up changes the test harness and validation notes, not production behavior.
+`npm test` was rerun after this follow-up: **54 passed, 0 failed, 0 skipped**. No application defect was found by these additional database checks, so this follow-up changes the test harness and validation notes, not production behavior.

@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     hearingsList.innerHTML = hearings.map(h => `
       <div class="hearing-item">
+        <strong>${escapeHtml(h.title || h.hearing_type || 'Hearing')}</strong>
         <div class="hearing-date">${new Date(h.scheduled_date).toLocaleString()}</div>
         <div class="hearing-location">📍 ${escapeHtml(h.location || 'Courtroom Unassigned')}</div>
         <p class="hearing-notes">${escapeHtml(h.notes || '')}</p>

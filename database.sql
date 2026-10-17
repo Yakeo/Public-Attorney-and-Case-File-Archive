@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS `case_file` (
   `filing_date` date DEFAULT NULL,
   `creation_date` date NOT NULL,
   `last_updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `is_visible` tinyint(4) NOT NULL DEFAULT 1,
+  `is_visible` tinyint(4) NOT NULL DEFAULT 0,
   `created_by` int(11) DEFAULT NULL,
   `is_deleted` tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`cf_code`),

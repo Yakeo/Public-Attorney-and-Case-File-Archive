@@ -44,6 +44,15 @@ test('real MySQL/MariaDB migration and core HTTP workflows', {
       assert.equal(versions[0].extracted_text, 'Legacy useful text');
       assert.deepEqual(versions.map(v => v.ocr_status), ['COMPLETED', 'FAILED']);
       await assert.rejects(pool.execute('INSERT INTO document_version (document_code, version_no, file_path, uploaded_by) VALUES (?,1,?,?)', [doc.insertId, file, user.insertId]));
+      // Migration 002 must protect future cases without silently changing approved publication.
+      await pool.execute('UPDATE case_file SET is_visible=1 WHERE cf_code=?', [caseId]);
+      await pool.query('ALTER TABLE case_file MODIFY is_visible TINYINT(4) NOT NULL DEFAULT 1');
+      await pool.query(fs.readFileSync(path.join(__dirname, '../migrations/002_private_case_defaults.sql'), 'utf8'));
+      const [existingCase] = await pool.execute('SELECT is_visible FROM case_file WHERE cf_code=?', [caseId]);
+      assert.equal(existingCase[0].is_visible, 1);
+      const [privateCase] = await pool.execute('INSERT INTO case_file (cf_name, status_id, creation_date) VALUES (?,1,CURDATE())', ['Default-private migration fixture']);
+      const [newCase] = await pool.execute('SELECT is_visible FROM case_file WHERE cf_code=?', [privateCase.insertId]);
+      assert.equal(newCase[0].is_visible, 0);
     });
     const id = require.resolve('../config/db');
     require.cache[id] = { id, filename: id, loaded: true, exports: pool };

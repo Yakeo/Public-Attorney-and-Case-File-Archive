@@ -813,3 +813,33 @@ body.drawer-open .dashboard-main-content {
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-color);
 }
+/* Keep archive controls usable on narrow screens without widening the page. */
+.table-responsive { max-width: 100%; overflow-x: auto; }
+.toolbar-left, .toolbar-right { display: flex; flex-wrap: wrap; gap: .65rem; min-width: 0; max-width: 100%; }
+.side-drawer:not(.open) { display: none; }
+.side-drawer { overflow-y: auto; }
+.drawer-form { height: auto; flex: 1; }
+.modal-content { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.modal-content input[type="checkbox"] { width: auto !important; }
+.ocr-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.doc-header { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+.doc-card { overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .container { padding-left: 1rem; padding-right: 1rem; }
+  .navbar { width: calc(100% - 2rem); padding: .85rem; border-radius: 20px; flex-wrap: wrap; gap: .8rem; position: relative; top: 0; }
+  .nav-links { flex-wrap: wrap; gap: .7rem; max-width: 100%; }
+  .nav-brand, .nav-links, .toolbar-card, .toolbar-left, .toolbar-right { min-width: 0; }
+  .logo-link { flex-wrap: wrap; }
+  .user-greeting { flex-basis: 100%; }
+  .toolbar-card { padding: 1rem; }
+  .toolbar-left, .toolbar-right { width: 100%; }
+  .toolbar-left input, .toolbar-left select { max-width: 100%; width: 100%; box-sizing: border-box; }
+  .table-card, .card { padding: 1rem; min-width: 0; }
+  .data-table { min-width: 640px; }
+  .card-header-flex { flex-wrap: wrap; gap: .65rem; }
+  .grid-container, .profile-content-grid { grid-template-columns: minmax(0, 1fr); }
+  .hero-search-card { flex-direction: column; align-items: stretch; }
+  .hero-search-card input, .hero-search-card select { min-width: 0; max-width: 100%; width: 100%; }
+  .hero-title { font-size: 2rem; }
+  .side-drawer, .modal-content { padding: 1.2rem; }
+}

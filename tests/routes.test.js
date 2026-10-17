@@ -220,3 +220,23 @@ test('current profile returns an active user for case-view role checks', async (
   assert.equal(r.status, 200); assert.equal(r.data.data.role_id, 1);
   assert.match(calls.at(-1).sql, /role_id, is_active/);
 });
+
+test('administrator must supply a strong initial attorney password, not a shared default', async () => {
+  for (const password of [undefined, 'short']) {
+    const r = await api('/attorneys', { method: 'POST', body: { fname: 'Demo', lname: 'Counsel', email: 'counsel@example.test', password } });
+    assert.equal(r.status, 400);
+    assert.match(r.data.message, /at least 12/);
+  }
+});
+
+test('new cases are private while internal listing is not restricted to public rows', async () => {
+  handler = sql => sql.includes('SELECT code FROM case_category') ? [{ code: 'CIVIL' }] : { insertId: 42 };
+  const created = await api('/cases', { method: 'POST', body: { title: 'Private synthetic case' } });
+  assert.equal(created.status, 201);
+  const insert = calls.find(c => c.sql.includes('INSERT INTO case_file'));
+  assert.match(insert.sql, /created_by, is_visible/);
+  assert.match(insert.sql, /CURDATE\(\), \?, 0\)/);
+  handler = () => [];
+  await api('/cases'); assert.ok(!calls.at(-1).sql.includes('cf.is_visible = 1'));
+  await api('/cases/public', { noAuth: true }); assert.ok(calls.at(-1).sql.includes('cf.is_visible = 1'));
+});

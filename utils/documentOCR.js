@@ -1,11 +1,11 @@
 const fs = require('fs/promises');
 const { PDFParse } = require('pdf-parse');
-const { pdfToPng } = require('pdf-to-png-converter');
 const Tesseract = require('tesseract.js');
 const db = require('../config/db');
 
 async function recognizeImages(images) {
-  const worker = await Tesseract.createWorker('eng');
+  const worker = await Tesseract.createWorker('eng', 1, process.env.TESSDATA_PATH
+    ? { langPath: process.env.TESSDATA_PATH, cachePath: process.env.TESSDATA_PATH, gzip: false } : {});
   try {
     const parts = [];
     for (const image of images) {
@@ -20,13 +20,14 @@ async function recognizeImages(images) {
 async function extractText(filePath) {
   if (!filePath.toLowerCase().endsWith('.pdf')) return recognizeImages([filePath]);
   const parser = new PDFParse({ data: await fs.readFile(filePath) });
-  let text;
-  try { text = ((await parser.getText()).text || '').trim(); }
-  finally { await parser.destroy(); }
-  if (text.length >= 50) return text;
-  const pages = await pdfToPng(filePath, { verbosityLevel: 0 });
-  // Preserve valid short embedded text if the rendered pages contain no more text.
-  return (await recognizeImages(pages.map(page => page.content))) || text;
+  try {
+    const text = ((await parser.getText()).text || '').trim();
+    if (text.length >= 50) return text;
+    // Render with the SAME pdf.js instance used for extraction. Mixing a second
+    // PDF renderer can reuse an incompatible global worker after getText().
+    const screenshots = await parser.getScreenshot({ scale: 2, imageBuffer: true, imageDataUrl: false });
+    return (await recognizeImages(screenshots.pages.map(page => Buffer.from(page.data)))) || text;
+  } finally { await parser.destroy(); }
 }
 
 async function processOCR(documentCode, versionNumber, filePath) {

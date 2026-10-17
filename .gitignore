@@ -8,3 +8,6 @@ uploads/
 .venv/
 __pycache__/
 *.log
+
+# OCR language caches must be provisioned separately
+*.traineddata
