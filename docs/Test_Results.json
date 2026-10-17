@@ -1,0 +1,296 @@
+{
+  "date": "2026-10-17",
+  "baseline_commit": "5416e68",
+  "node": "v22.22.3",
+  "decision": "not_ready_manual_deferred",
+  "database": "Unavailable: ECONNREFUSED; real SQL and full end-to-end workflows unverified",
+  "total": 67,
+  "passed": 54,
+  "failed": 13,
+  "suites": [
+    {
+      "suite": "live_http",
+      "scope": "Actual server, read-only smoke and database readiness",
+      "passed": 17,
+      "failed": 2,
+      "checks": [
+        {
+          "name": "LIVE: health responds with process uptime",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: serves HTML /",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: serves HTML /dashboard.html",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: serves HTML /case-details.html",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: serves HTML /clients.html",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: serves HTML /admin.html",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: serves HTML /public-cases.html",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: unauthenticated /auth/me is rejected",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: unauthenticated /cases is rejected",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: unauthenticated /clients is rejected",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: unauthenticated /hearings is rejected",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: unauthenticated /documents is rejected",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: unauthenticated /documents/1/download is rejected",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: invalid bearer token is rejected",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: unknown API endpoint returns JSON 404",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: /auth/login rejects missing fields before database access",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE: /auth/register rejects missing fields before database access",
+          "result": "passed"
+        },
+        {
+          "name": "LIVE READINESS: public database-backed /attorneys returns data",
+          "result": "failed"
+        },
+        {
+          "name": "LIVE READINESS: public database-backed /cases/public returns data",
+          "result": "failed"
+        }
+      ]
+    },
+    {
+      "suite": "isolated_workflows",
+      "scope": "Mock database and image OCR; fake DOM and compatibility checks",
+      "passed": 37,
+      "failed": 11,
+      "checks": [
+        {
+          "name": "AUTH: expired token rejected",
+          "result": "passed"
+        },
+        {
+          "name": "AUTH: incorrect signing secret rejected",
+          "result": "passed"
+        },
+        {
+          "name": "AUTH: standard user cannot create a case",
+          "result": "passed"
+        },
+        {
+          "name": "AUTH: standard user cannot manage clients",
+          "result": "passed"
+        },
+        {
+          "name": "AUTH: nonadministrator cannot create attorneys",
+          "result": "passed"
+        },
+        {
+          "name": "AUTH: login rejects unknown email",
+          "result": "passed"
+        },
+        {
+          "name": "AUTH: correct password returns verifiable token",
+          "result": "passed"
+        },
+        {
+          "name": "AUTH: incorrect password rejected",
+          "result": "passed"
+        },
+        {
+          "name": "AUTH: registration hashes password and defaults to role 5",
+          "result": "passed"
+        },
+        {
+          "name": "REGRESSION SECURITY: public registration must not accept administrator role",
+          "result": "failed"
+        },
+        {
+          "name": "CASES: title is required",
+          "result": "passed"
+        },
+        {
+          "name": "CASES: category/year/padded ID are returned",
+          "result": "passed"
+        },
+        {
+          "name": "CASES: missing case returns 404",
+          "result": "passed"
+        },
+        {
+          "name": "CASES: filters use bound parameters",
+          "result": "passed"
+        },
+        {
+          "name": "ASSIGNMENT: missing attorney ID rejected",
+          "result": "passed"
+        },
+        {
+          "name": "ASSIGNMENT: inactive attorney rejected",
+          "result": "passed"
+        },
+        {
+          "name": "ASSIGNMENT: valid attorney association inserted",
+          "result": "passed"
+        },
+        {
+          "name": "REGRESSION SECURITY: standard user must not modify attorney assignments",
+          "result": "failed"
+        },
+        {
+          "name": "CLIENTS: required fields rejected",
+          "result": "passed"
+        },
+        {
+          "name": "CLIENTS: profile created for existing account",
+          "result": "passed"
+        },
+        {
+          "name": "CLIENTS: empty update rejected",
+          "result": "passed"
+        },
+        {
+          "name": "CLIENTS: missing profile rejected",
+          "result": "passed"
+        },
+        {
+          "name": "REGRESSION CLIENTS: linking route passes client ID to controller",
+          "result": "failed"
+        },
+        {
+          "name": "REGRESSION CLIENTS: assigned-case route binds client ID",
+          "result": "failed"
+        },
+        {
+          "name": "DIRECTORY: public list returns shaped profiles",
+          "result": "passed"
+        },
+        {
+          "name": "DIRECTORY: unknown attorney returns 404",
+          "result": "passed"
+        },
+        {
+          "name": "ADMIN: attorney creation commits both account and profile",
+          "result": "passed"
+        },
+        {
+          "name": "ADMIN: profile insertion failure rolls back account",
+          "result": "passed"
+        },
+        {
+          "name": "HEARINGS: required fields rejected",
+          "result": "passed"
+        },
+        {
+          "name": "HEARINGS: conflict returns 409 for staff",
+          "result": "passed"
+        },
+        {
+          "name": "HEARINGS: staff cannot request administrator override",
+          "result": "passed"
+        },
+        {
+          "name": "HEARINGS: administrator explicit override accepted",
+          "result": "passed"
+        },
+        {
+          "name": "HEARINGS: missing calendar bounds rejected",
+          "result": "passed"
+        },
+        {
+          "name": "REGRESSION SCHEMA: hearing detail query references existing columns",
+          "result": "failed"
+        },
+        {
+          "name": "REGRESSION SCHEMA: calendar defines hearing_status alias before using it",
+          "result": "failed"
+        },
+        {
+          "name": "DOCUMENTS: standard user cannot upload",
+          "result": "passed"
+        },
+        {
+          "name": "DOCUMENTS: missing file rejected",
+          "result": "passed"
+        },
+        {
+          "name": "DOCUMENTS: unsupported MIME type rejected",
+          "result": "passed"
+        },
+        {
+          "name": "DOCUMENTS: image upload commits parent/version (OCR stubbed)",
+          "result": "passed"
+        },
+        {
+          "name": "REGRESSION SCHEMA: stored upload MIME fits document.file_type",
+          "result": "failed"
+        },
+        {
+          "name": "DOCUMENTS: missing version history returns 404",
+          "result": "passed"
+        },
+        {
+          "name": "DOCUMENTS: new version advances pointer (OCR stubbed)",
+          "result": "passed"
+        },
+        {
+          "name": "DOCUMENTS: empty search rejected",
+          "result": "passed"
+        },
+        {
+          "name": "DOCUMENTS: search query is parameterized with optional case filter",
+          "result": "passed"
+        },
+        {
+          "name": "REGRESSION DOCUMENTS: download query selects current revision path",
+          "result": "failed"
+        },
+        {
+          "name": "REGRESSION OCR: installed pdf-parse supports current callable API",
+          "result": "failed"
+        },
+        {
+          "name": "REGRESSION UI: submitting upload sends multipart request",
+          "result": "failed"
+        },
+        {
+          "name": "REGRESSION UI: document download uses authenticated request",
+          "result": "failed"
+        }
+      ]
+    }
+  ]
+}
