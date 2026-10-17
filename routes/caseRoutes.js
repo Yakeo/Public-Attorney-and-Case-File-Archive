@@ -26,6 +26,7 @@ router.delete('/:id/public-summary', authenticateToken, authorizeRoles(1), publi
 router.use(authenticateToken, authorizeRoles(1, 2, 3));
 
 router.post('/', authenticateToken, authorizeRoles(1, 2, 3), caseController.createCase);
+router.get('/client-options', caseController.listCaseIntakeClients);
 router.get('/', caseController.getAllCases);
 router.get('/:id', caseController.getCaseById);
 
