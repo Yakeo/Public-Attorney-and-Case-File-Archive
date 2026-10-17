@@ -596,6 +596,23 @@ h1, h2, h3, .heading-display {
 /* ==========================================================================
    6. Modals
    ========================================================================== */
+.auth-pending body { visibility: hidden; }
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+}
+.modal > .modal-content {
+  position: relative;
+  width: min(100%, 560px);
+  box-sizing: border-box;
+}
 .modal-content {
   background: var(--bg-card-solid) !important;
   color: var(--text-main) !important;

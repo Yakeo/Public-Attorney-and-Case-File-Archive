@@ -134,7 +134,7 @@ npm run demo:seed -- --bundle demo-data/rehearsal-two/defense-v1 --database rehe
 npm run demo:start -- --bundle demo-data/rehearsal-two/defense-v1 --database rehearsal_two_demo --confirm-demo
 ```
 
-Do **not** run the older `npm run seed` for this package: that is a separate legacy bulk seeder, not this small, guarded demo importer.
+The old bulk seeder has been removed; use the guarded demo commands above for sample-data setup.
 
 ## Tests
 
@@ -145,4 +145,4 @@ npm run test:demo
 PACFAS_DEMO_TEST=1 MYSQL_TEST_SOCKET=/path/to/mysql.sock npm run test:demo:integration
 ```
 
-Alternatively use `MYSQL_TEST_HOST`, `MYSQL_TEST_PORT`, `MYSQL_TEST_USER`, and `MYSQL_TEST_PASSWORD` instead of a socket. Environment-variable assignment syntax above is for Unix shells; in PowerShell set `$env:NAME='value'` first. Integration tests independently verify all 90 current downloads by SHA-256 and re-run the application's real extractor against the image-only PDF and PNG. See `Defense_Demo_Validation.md` for the recorded run.
+Alternatively use `MYSQL_TEST_HOST`, `MYSQL_TEST_PORT`, `MYSQL_TEST_USER`, and `MYSQL_TEST_PASSWORD` instead of a socket. Environment-variable assignment syntax above is for Unix shells; in PowerShell set `$env:NAME='value'` first. Integration tests independently verify all 90 current downloads by SHA-256 and re-run the application's real extractor against the image-only PDF and PNG.

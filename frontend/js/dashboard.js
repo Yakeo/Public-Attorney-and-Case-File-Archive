@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  // Ensure local session token exists for standalone dev testing
+  if (!await requireWorkspaceSession()) return;
   // DOM Elements
   const userDisplayName = document.getElementById('userDisplayName');
   const casesTableBody = document.getElementById('casesTableBody');
