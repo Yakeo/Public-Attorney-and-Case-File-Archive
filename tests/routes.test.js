@@ -204,8 +204,13 @@ test('running/completed extraction cannot be retried', async () => {
 });
 test('search excludes deleted documents and uses bound values', async () => {
   assert.equal((await api('/documents/search?q=affidavit&case_id=42')).status, 200);
-  const query = calls.at(-1); assert.match(query.sql, /d.is_deleted = 0/);
-  assert.deepEqual(query.params, ['affidavit', '%affidavit%', '42']);
+  const query = calls.find(c => c.sql.includes('INSTR('));
+  assert.match(query.sql, /d.is_deleted = 0/);
+  assert.match(query.sql, /cf.is_deleted = 0/);
+  assert.match(query.sql, /dv.version_no = d.current_version_no/);
+  assert.match(query.sql, /d.doc_name LIKE/);
+  assert.match(query.sql, /dv.file_name LIKE/);
+  assert.deepEqual(query.params, ['affidavit', '%affidavit%', '%affidavit%', '%affidavit%', '42']);
 });
 test('global cleanup never deletes an already committed upload', async () => {
   const file = path.join(temp, 'committed.png'); fs.writeFileSync(file, 'saved');
@@ -239,4 +244,34 @@ test('new cases are private while internal listing is not restricted to public r
   handler = () => [];
   await api('/cases'); assert.ok(!calls.at(-1).sql.includes('cf.is_visible = 1'));
   await api('/cases/public', { noAuth: true }); assert.ok(calls.at(-1).sql.includes('cf.is_visible = 1'));
+});
+
+for (const options of [{ noAuth: true, status: 401 }, { role: 5, status: 403 }]) {
+  test(`document text search protects private contents (${options.status})`, async () => {
+    assert.equal((await api('/documents/search?q=ORCHID', options)).status, options.status);
+    assert.ok(!calls.some(c => c.sql.includes('INSTR(')));
+  });
+}
+test('document search validates inputs and treats wildcard characters literally', async () => {
+  for (const query of ['', 'q=', 'q=' + 'x'.repeat(201), 'q[x]=a', 'q=word&case_id=bad']) {
+    assert.equal((await api('/documents/search?' + query)).status, 400);
+  }
+  await api('/documents/search?q=100%25_under!');
+  const sql = calls.find(c => c.sql.includes('INSTR('));
+  assert.equal(sql.params[1], '%100!%!_under!!%');
+  assert.match(sql.sql, /LIMIT 100/);
+});
+
+test('attorneys can register a private case without gaining counsel-assignment privileges', async () => {
+  handler = sql => sql.includes('SELECT code FROM case_category') ? [{ code: 'CIVIL' }] : { insertId: 42 };
+  assert.equal((await api('/cases', { role: 2, method: 'POST', body: { title: 'Attorney-created sample' } })).status, 201);
+  assert.equal((await api('/cases/42/attorneys', { role: 2, method: 'POST', body: { attorney_id: 'D0001' } })).status, 403);
+});
+
+test('upload stores searchable original filename separately from the physical storage path', async () => {
+  handler = uploadHandler;
+  assert.equal((await api('/documents/upload', { method: 'POST', form: pngForm() })).status, 201);
+  const version = calls.find(c => c.sql.includes('INSERT INTO document_version'));
+  assert.equal(version.params[2], 'evidence.png');
+  assert.notEqual(version.params[3], version.params[2]);
 });

@@ -67,8 +67,8 @@ function starterGuide(plan) {
     `\nClient profiles are NOT provided with usable portal passwords.\n` +
     `Never expose these public, shared demo credentials on a live deployment.\n\n` +
     `SUGGESTED WALKTHROUGH (reference date ${plan.date}):\n` +
-    `- DEMO-01: scan + PNG OCR. Search extracted text for ORCHID using the real search API.\n` +
-    `  Open the cards' extracted text; download the original; upload a new revision.\n` +
+    `- DEMO-01: scan + PNG OCR. Type ORCHID in Search documents to find matches in recognized text.\n` +
+    `  Results refresh while you type and after OCR finishes; download the original or add a revision.\n` +
     `- DEMO-02 and DEMO-03: document 1 has two revisions with INITIALCOPY / REVISIONTWO markers.\n` +
     `  Current downloads use version 2. The browser lists the current revision, not a history picker.\n` +
     `- DEMO-03: two counsel and two linked clients.\n` +
@@ -76,7 +76,7 @@ function starterGuide(plan) {
     `  for the same date at 09:30: both share Tala Demo, so the UI should show a conflict.\n` +
     `  Sign in as staff to demonstrate rejection; admin override is explicit.\n` +
     `- DEMO-17 and DEMO-18: deliberately public fictional summaries; the other 16 remain private.\n` +
-    `- Accounts for counsel can view the office archive but cannot create cases or assign counsel.\n\n` +
+    `- Accounts for counsel can view the archive and create cases, but cannot assign counsel or manage clients.\n\n` +
     `Existing complete installs are recognized, not duplicated or overwritten. This generator\n` +
     `has NO wipe/reset command. For a fresh rehearsal use another EMPTY *_demo database.\n` +
     `Files are copied to uploads/defense-v1/<database>/ with portable relative DB paths.\n` +

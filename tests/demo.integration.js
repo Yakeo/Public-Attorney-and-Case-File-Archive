@@ -108,6 +108,35 @@ test('real demo install, idempotence, isolation, HTTP downloads/search/privacy a
         assert.match(rows[0].extracted_text, /REVISIONTWO/); assert.match(rows[1].extracted_text, /INITIALCOPY/);
       }
     });
+    await t.test('document search finds filenames, excludes old versions and deleted parent cases', async () => {
+      const filename = await req('/documents/search?q=DEMO-01-doc2-v1.png');
+      assert.equal((await filename.json()).data.length, 1);
+      const initial = (await (await req('/documents/search?q=INITIALCOPY')).json()).data;
+      for (const key of ['case-2-doc-1', 'case-3-doc-1']) assert.ok(!initial.some(d => d.document_id === receipt.documents[key]));
+      await db.execute('UPDATE case_file SET is_deleted=1 WHERE cf_code=?', [receipt.cases['case-1']]);
+      try { assert.equal((await (await req('/documents/search?q=ORCHID')).json()).data.length, 0); }
+      finally { await db.execute('UPDATE case_file SET is_deleted=0 WHERE cf_code=?', [receipt.cases['case-1']]); }
+    });
+    await t.test('real queued OCR becomes searchable only after successful recognition', async () => {
+      const sample = plan.documents[0].versions[0];
+      const file = receipt.paths[sample.file];
+      const [doc] = await db.execute(`INSERT INTO document
+        (cf_code,doc_name,file_path,uploaded_by,date_added,current_version_no) VALUES (?,?,?,?,CURDATE(),1)`,
+        [receipt.cases['case-1'], 'Queued recognition sample', file, receipt.users.admin]);
+      try {
+        await db.execute(`INSERT INTO document_version
+          (document_code,version_no,file_name,file_path,uploaded_by,ocr_status) VALUES (?,1,?,?,?,'PENDING')`,
+          [doc.insertId, 'queued-scan.pdf', file, receipt.users.admin]);
+        const before = await (await req('/documents/search?q=ORCHID')).json();
+        assert.ok(!before.data.some(d => d.document_id === doc.insertId)); assert.ok(before.pending >= 1);
+        await require('../utils/documentOCR').processOCR(doc.insertId, 1, path.join(ROOT, file));
+        const after = await (await req('/documents/search?q=ORCHID')).json();
+        assert.ok(after.data.some(d => d.document_id === doc.insertId && d.ocr_status === 'COMPLETED'));
+      } finally {
+        await db.execute('DELETE FROM document_version WHERE document_code=?', [doc.insertId]);
+        await db.execute('DELETE FROM document WHERE document_code=?', [doc.insertId]);
+      }
+    });
     await t.test('shared clients/counsel are real links and staff hearing conflict returns 409', async () => {
       const id = receipt.cases['case-3'];
       assert.equal((await (await req(`/cases/${id}/clients`)).json()).data.length, 2);
@@ -123,6 +152,11 @@ test('real demo install, idempotence, isolation, HTTP downloads/search/privacy a
         assert.match(text, /ORCHID/); assert.match(text, /SYNTHETIC DEMO DATA/);
       }
     });
+    if (process.env.PACFAS_SEARCH_BROWSER === '1') {
+      await t.test('real browser upload-to-OCR-to-live-search workflow', async () => {
+        await require('./search.browser.cjs').runSearchBrowser({ base, bundle, receipt, db });
+      });
+    }
     await t.test('baseline verification still passes after real authenticated rehearsal', async () => {
       assert.equal((await verifyInstall(db, bundle)).status, 'verified');
     });

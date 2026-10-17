@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const uploadError = document.getElementById('uploadError');
   const submitUploadBtn = document.getElementById('submitUploadBtn');
 
+  let focusedDocument = false;
   let pollTimer;
   let pollCount = 0;
   let revisionDocumentId = null;
@@ -116,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     documentsList.innerHTML = docs.map(d => `
-      <div class="doc-card">
+      <div class="doc-card" id="document-${escapeHtml(d.id)}">
         <div class="doc-header">
           <strong>${escapeHtml(d.title)}</strong>
           <button type="button" class="btn-link" data-action="download" data-id="${escapeHtml(d.id)}">Download ↗</button>
@@ -124,14 +125,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <p class="text-muted text-xs">Text extraction: ${escapeHtml(d.ocr_status || 'PENDING')} · Version ${escapeHtml(d.version_number || 1)}</p>
         ${d.ocr_status === 'FAILED' ? `<p class="error-text">${escapeHtml(d.ocr_error || 'Extraction failed.')}</p><button type="button" class="btn-link" data-action="retry" data-id="${escapeHtml(d.id)}" data-version="${escapeHtml(d.version_number)}">Retry extraction</button>` : ''}
-        ${d.ocr_text ? `
-          <details class="ocr-container">
-            <summary class="ocr-toggle">View Extracted OCR Text</summary>
-            <pre class="ocr-text">${escapeHtml(d.ocr_text)}</pre>
-          </details>
-        ` : `<span class="text-muted text-xs">No OCR text extracted</span>`}
+        <span class="text-muted text-xs">${d.ocr_status === 'COMPLETED' ? 'Ready for document-content search.' : 'Content search becomes available after successful extraction.'}</span>
       </div>
     `).join('');
+    if (!focusedDocument && /^#document-\d+$/.test(window.location.hash)) {
+      const target = document.getElementById(window.location.hash.slice(1));
+      if (target) { target.scrollIntoView({ block: 'center' }); focusedDocument = true; }
+    }
   }
 
   if (openUploadModalBtn) {
@@ -193,10 +193,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     finally { refreshDocumentsBtn.disabled = false; }
   });
 
+  window.addEventListener('document-search-cleared', () => {
+    pollCount = 0;
+    refreshDocuments().catch(error => showToast(error.message, 'error'));
+  });
+
   async function refreshDocuments() {
     const response = await apiRequest(`/documents?case_id=${caseId}`);
     renderDocuments(response.data || []);
     scheduleRefresh(response.data || []);
+    if (typeof window.dispatchEvent === 'function') window.dispatchEvent(new Event('documents-changed'));
   }
   function scheduleRefresh(documents) {
     clearTimeout(pollTimer);

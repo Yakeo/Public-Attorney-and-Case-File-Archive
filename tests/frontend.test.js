@@ -102,3 +102,10 @@ test('download fetch attaches token, clicks blob link and releases URL', async (
   assert.equal(calls[0].options.headers.Authorization, 'Bearer synthetic-token');
   assert.deepEqual(actions, ['clicked', 'blob:test']);
 });
+
+test('document cards expose retrieval status without displaying full extracted text', async () => {
+  const code = source('case-details.js');
+  assert.ok(!code.includes('View Extracted OCR Text'));
+  assert.ok(!code.includes('d.ocr_text'));
+  assert.match(code, /Ready for document-content search/);
+});

@@ -45,7 +45,7 @@ async function saveUpload(req, existingId) {
       `INSERT INTO document_version
        (document_code, version_no, file_name, file_path, file_size, mime_type, extracted_text, uploaded_by, ocr_status)
        VALUES (?, ?, ?, ?, ?, ?, NULL, ?, 'PENDING')`,
-      [documentCode, versionNumber, req.file.filename, req.file.path, req.file.size, req.file.mimetype, req.user.user_id]
+      [documentCode, versionNumber, path.basename(req.file.originalname.replace(/\\/g, '/')).slice(0, 255), req.file.path, req.file.size, req.file.mimetype, req.user.user_id]
     );
     if (existingId) await connection.execute(
       'UPDATE document SET current_version_no = ? WHERE document_code = ?', [versionNumber, documentCode]
@@ -126,43 +126,42 @@ exports.getDocumentVersions = catchAsync(async (req, res, next) => {
 
 exports.searchDocumentText = catchAsync(async (req, res, next) => {
   const { q, case_id } = req.query;
-
-  if (!q || q.trim() === '') {
-    return next(new CustomError('Query parameter "q" is required for text search.', 400));
+  if (typeof q !== 'string' || !q.trim() || q.trim().length > 200) {
+    return next(new CustomError('Enter a search query between 1 and 200 characters.', 400));
   }
-
-  let sql = `
-    SELECT
-      d.document_code AS document_id,
-      d.doc_name AS title,
-      d.cf_code AS case_id,
-      dv.version_id,
-      dv.version_no AS version_number,
-      dv.file_name,
-      dv.file_path,
+  if (case_id !== undefined && (typeof case_id !== 'string' || !/^[1-9]\d*$/.test(case_id))) {
+    return next(new CustomError('A valid case_id is required.', 400));
+  }
+  const query = q.trim();
+  // Treat LIKE wildcard characters literally; all user values remain bound parameters.
+  const pattern = `%${query.replace(/[!%_]/g, '!$&')}%`;
+  const scope = case_id ? ' AND d.cf_code = ?' : '';
+  const params = [query, pattern, pattern, pattern];
+  if (case_id) params.push(case_id);
+  const [results] = await db.execute(`
+    SELECT d.document_code AS document_id, d.doc_name AS title,
+      d.cf_code AS case_id, cf.cf_name AS case_title,
+      dv.version_no AS version_number, dv.file_name, dv.ocr_status,
       dv.uploaded_at AS created_at,
-      INSTR(LOWER(dv.extracted_text), LOWER(?)) AS match_position
-    FROM document_version dv
-    JOIN document d ON dv.document_code = d.document_code
-    WHERE d.is_deleted = 0 AND dv.ocr_status = 'COMPLETED' AND dv.extracted_text LIKE ?
-  `;
-
-  const params = [q, `%${q}%`];
-
-  if (case_id) {
-    sql += ` AND d.cf_code = ?`;
-    params.push(case_id);
-  }
-
-  sql += ` ORDER BY dv.uploaded_at DESC`;
-
-  const [results] = await db.execute(sql, params);
-
-  res.status(200).json({
-    status: 'success',
-    results: results.length,
-    data: results
-  });
+      INSTR(LOWER(COALESCE(dv.extracted_text, '')), LOWER(?)) AS match_position
+    FROM document d
+    JOIN case_file cf ON cf.cf_code = d.cf_code
+    JOIN document_version dv ON dv.document_code = d.document_code
+      AND dv.version_no = d.current_version_no
+    WHERE d.is_deleted = 0 AND cf.is_deleted = 0
+      AND (d.doc_name LIKE ? ESCAPE '!' OR dv.file_name LIKE ? ESCAPE '!'
+        OR (dv.ocr_status = 'COMPLETED' AND dv.extracted_text LIKE ? ESCAPE '!'))
+      ${scope}
+    ORDER BY dv.uploaded_at DESC, d.document_code DESC LIMIT 100`, params);
+  const [pending] = await db.execute(`
+    SELECT COUNT(*) AS pending FROM document d
+    JOIN case_file cf ON cf.cf_code = d.cf_code
+    JOIN document_version dv ON dv.document_code = d.document_code
+      AND dv.version_no = d.current_version_no
+    WHERE d.is_deleted = 0 AND cf.is_deleted = 0
+      AND dv.ocr_status IN ('PENDING','PROCESSING') ${scope}`, case_id ? [case_id] : []);
+  res.status(200).json({ status: 'success', results: results.length, limit: 100,
+    pending: Number(pending[0]?.pending || 0), data: results });
 });
 
 // List documents for a case (used by frontend case details)
@@ -175,7 +174,6 @@ exports.listDocuments = catchAsync(async (req, res, next) => {
       d.doc_name AS title,
       d.cf_code AS case_id,
       dv.file_name AS filename,
-      dv.extracted_text AS ocr_text,
       dv.ocr_status,
       dv.ocr_error,
       dv.version_no AS version_number,
@@ -215,7 +213,7 @@ exports.downloadDocument = catchAsync(async (req, res, next) => {
   const filePath = rows[0].file_path;
   const fs = require('fs');
   if (!fs.existsSync(filePath)) return next(new CustomError('File not found on disk.', 404));
-  const ext = path.extname(rows[0].file_name || filePath);
+  const ext = path.extname(filePath); // Validated storage extension, not an arbitrary uploaded filename.
   const name = path.basename(rows[0].doc_name || 'document').replace(/[\r\n]/g, '');
   res.download(filePath, name.toLowerCase().endsWith(ext.toLowerCase()) ? name : name + ext);
 });

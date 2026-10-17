@@ -860,3 +860,12 @@ body.drawer-open .dashboard-main-content {
   .hero-title { font-size: 2rem; }
   .side-drawer, .modal-content { padding: 1.2rem; }
 }
+
+/* OCR-backed document retrieval: separate from case title/description filters. */
+.document-search { margin-bottom: 1.5rem; }
+.document-search label { display: block; margin: .6rem 0; }
+.document-search-controls, .document-search-actions { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+.document-search-controls input { flex: 1 1 220px; min-width: 0; padding: .8rem; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-card-solid); color: var(--text-main); }
+.document-search .doc-card { margin-top: .75rem; overflow-wrap: anywhere; }
+.document-search-actions a { text-decoration: none; }
+.doc-card:target { outline: 2px solid var(--accent-primary); scroll-margin-top: 1rem; }

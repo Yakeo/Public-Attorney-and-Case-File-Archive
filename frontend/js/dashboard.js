@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const createBtn = document.getElementById('btnCreateCase');
         const isStaffOrAdmin = userRes.data.role_id === 1 || userRes.data.role_id === 3;
         if (clientsLink && !isStaffOrAdmin) clientsLink.style.display = 'none';
-        if (createBtn && !isStaffOrAdmin) createBtn.style.display = 'none';
+        if (createBtn) createBtn.style.display = [1, 2, 3].includes(Number(userRes.data.role_id)) ? '' : 'none';
         if (userDisplayName) userDisplayName.textContent = `${userRes.data.role_id === 2 ? 'Atty. ' : ''}${fullName}`;
 
         const avatarCircle = document.querySelector('.avatar-circle');
@@ -186,6 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         await apiRequest('/cases', 'POST', payload);
         closeDrawer();
+        showToast('Case created successfully.', 'success');
         await refreshCases();
       } catch (err) {
         if (drawerErrorBanner) {

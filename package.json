@@ -16,7 +16,8 @@
     "demo:start": "node scripts/demo/cli.js start",
     "test:demo": "node --test tests/demo.test.js",
     "test:demo:integration": "node --test tests/demo.integration.js",
-    "test:auth:browser": "node tests/auth.browser.cjs"
+    "test:auth:browser": "node tests/auth.browser.cjs",
+    "test:search:browser": "node tests/search.browser.cjs"
   },
   "keywords": [],
   "author": "",

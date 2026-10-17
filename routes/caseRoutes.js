@@ -11,7 +11,7 @@ router.get('/public', caseController.getPublicCases);
 // Protect remaining case endpoints
 router.use(authenticateToken, authorizeRoles(1, 2, 3));
 
-router.post('/', authenticateToken, authorizeRoles(1, 3), caseController.createCase);
+router.post('/', authenticateToken, authorizeRoles(1, 2, 3), caseController.createCase);
 router.get('/', caseController.getAllCases);
 router.get('/:id', caseController.getCaseById);
 

@@ -138,29 +138,39 @@ async function login(email, pass = password) {
     await waitText(page.locator('#hearingsList'), 'Conflict demonstration');
   });
   let pngDocId;
-  await step('Upload a real PNG and display actual recognized text', async () => {
+  await step('Upload a real PNG and retrieve it using recognized text', async () => {
     await page.locator('#openUploadModalBtn').click(); await page.locator('#docTitleInput').fill('Clear image affidavit');
     await page.locator('#docFileInput').setInputFiles(path.join(fixtures, 'clear.png'));
     await shot('10-upload.png', page.locator('#uploadModal .modal-content'));
     const response = page.waitForResponse(r => r.request().method() === 'POST' && r.url().endsWith('/documents/upload'));
     await page.locator('#submitUploadBtn').click(); const r = await response; assert.equal(r.status(), 201); pngDocId = (await r.json()).data.documentId;
     let card = page.locator('#documentsList .doc-card').filter({ hasText: 'Clear image affidavit' });
-    await waitText(card, 'COMPLETED'); await card.locator('summary').click(); await waitText(card, '7426');
+    await waitText(card, 'COMPLETED');
+    await page.locator('#documentSearchInput').fill('7426');
+    await waitText(page.locator('#documentSearchResults'), 'Clear image affidavit');
+    await page.locator('#clearDocumentSearch').click();
     await shot('11-ocr.png', card);
   });
   await step('Upload two-page scanned-PDF revision, OCR both pages, download exact current bytes', async () => {
     const card = () => page.locator('#documentsList .doc-card').filter({ hasText: 'Clear image affidavit' });
     const revision = await upload('Scanned PDF revision', 'scanned.pdf', card()); assert.equal(revision.versionNumber, 2);
-    await waitText(card(), 'COMPLETED'); await card().locator('summary').click(); await waitText(card(), '7427');
-    assert.match(await card().innerText(), /7426/); await shot('12-scanned-pdf.png', card());
+    await waitText(card(), 'COMPLETED');
+    for (const term of ['7426', '7427']) {
+      await page.locator('#documentSearchInput').fill(term);
+      await waitText(page.locator('#documentSearchResults'), 'Clear image affidavit');
+    }
+    await page.locator('#clearDocumentSearch').click(); await shot('12-scanned-pdf.png', card());
     const downloaded = page.waitForEvent('download'); await card().getByRole('button', { name: 'Download', exact: false }).click();
     const download = await downloaded; const dest = path.join(root, '.cache/e2e/downloaded.pdf'); await download.saveAs(dest);
     assert.equal(hash(dest), hash(path.join(fixtures, 'scanned.pdf')));
   });
   for (const [fixture, title] of [['clear.jpg', 'JPEG recognition'], ['clear.tiff', 'TIFF recognition'], ['text.pdf', 'Embedded PDF text']]) {
-    await step(`Real ${fixture} upload, processing and text display`, async () => {
+    await step(`Real ${fixture} upload, processing and content retrieval`, async () => {
       await upload(title, fixture); const card = page.locator('#documentsList .doc-card').filter({ hasText: title });
-      await waitText(card, 'COMPLETED'); await card.locator('summary').click(); await waitText(card, '7426');
+      await waitText(card, 'COMPLETED');
+      await page.locator('#documentSearchInput').fill('7426');
+      await waitText(page.locator('#documentSearchResults'), title);
+      await page.locator('#clearDocumentSearch').click();
     });
   }
   await step('Blank image fails visibly; a real retry is accepted and fails safely again', async () => {
