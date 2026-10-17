@@ -1,12 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const caseController = require('../controllers/caseController');
+const publicSummaryController = require('../controllers/publicSummaryController');
 const caseAssignmentController = require('../controllers/caseAssignmentController');
 const clientController = require('../controllers/clientController');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const publicSummaryUpload = require('../config/publicSummaryUpload');
 
-// Public, non-confidential case summaries (no auth)
-router.get('/public', caseController.getPublicCases);
+// Public routes expose only a specifically approved public-summary record.
+router.get('/public', publicSummaryController.listPublishedSummaries);
+router.get('/public/:id/summary.pdf', publicSummaryController.downloadPublishedSummary);
+
+// Admin-only publication controls. Uploading a PDF here is the explicit approval action.
+router.get('/public-summaries/manage', authenticateToken, authorizeRoles(1), publicSummaryController.listManagedSummaries);
+router.post(
+  '/:id/public-summary',
+  authenticateToken,
+  authorizeRoles(1),
+  publicSummaryUpload.single('summary_pdf'),
+  publicSummaryController.publishSummary
+);
+router.delete('/:id/public-summary', authenticateToken, authorizeRoles(1), publicSummaryController.unpublishSummary);
 
 // Protect remaining case endpoints
 router.use(authenticateToken, authorizeRoles(1, 2, 3));

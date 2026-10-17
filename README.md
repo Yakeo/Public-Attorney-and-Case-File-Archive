@@ -17,7 +17,7 @@ The repository no longer distributes `.env` or `node_modules`.
 4. Restore your database backup into an empty database and copy its matching
    `uploads/` folder. The repository's `database.sql` is a fresh-install schema,
    **not** a backup of your records; do not import it over an existing archive.
-5. Start MySQL, run `npm start`, and open the port configured in `.env`.
+5. For deployments using public-summary PDFs, include the private `private-storage/` directory in protected backups too. Start MySQL, run `npm start`, and open the port configured in `.env`.
 
 ## Optional fictional defense dataset
 
@@ -68,10 +68,31 @@ the tab is visible. Scans become content-searchable only after OCR completes.
 Clear returns to the case's document list. Up to 100 matches are returned;
 narrow broad searches. Private document search is not exposed to public users.
 
-No migration, reseeding or OCR-model replacement is required for this update.
-Previously extracted text is reused. Attorney case creation is enabled (without
-automatic counsel assignment); client/counsel management stays staff/admin only.
-Case creation now confirms success with a notification.
+For the OCR/search update, no migration, reseeding or OCR-model replacement is
+required; previously extracted text is reused. Attorney case creation is enabled
+(without automatic counsel assignment); client/counsel management stays staff/admin
+only. Case creation now confirms success with a notification.
+
+## Approved public case summaries
+
+Public case lookup displays only summaries explicitly published by an administrator;
+internal case records, client details, OCR text and original evidence are not returned
+by the public summary API. The handling attorney and public-summary PDF are shown only
+for the published version. Unpublishing removes that version from public lookup and
+PDF downloads; earlier versions remain in the private summary history.
+
+For an existing database, back it up first, then apply the additive schema migration
+from the repository root (replace `root` and `pacfas_db` with your MySQL user/database):
+
+```sh
+mysql -u root -p pacfas_db < migrations/20261017_public_case_summaries.sql
+```
+
+A fresh setup using `database.sql` already includes the summary-version table. In the
+Admin page, publish a public title, approved summary text, the handling attorney ID
+associated with the case, and the approved PDF. Publishing records the admin and time;
+only the current published version is downloadable. Follow your office's disclosure
+review policy before publishing any information.
 
 ### Real OCR/search browser validation (Linux, optional)
 

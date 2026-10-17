@@ -56,6 +56,14 @@ function pngForm() {
   form.append('document', new Blob([Buffer.from([137,80,78,71,13,10,26,10])], { type: 'image/png' }), 'evidence.png');
   return form;
 }
+function publicSummaryForm() {
+  const form = new FormData();
+  form.append('public_title', 'Approved Demo Summary');
+  form.append('summary_text', 'Only approved public information.');
+  form.append('handling_attorney_id', 'A0001');
+  form.append('summary_pdf', new Blob([Buffer.from('%PDF-1.4\nSynthetic approved summary')], { type: 'application/pdf' }), 'approved-summary.pdf');
+  return form;
+}
 function uploadHandler(sql, params) {
   if (sql.includes('SELECT cf_code')) return [{ cf_code: 42 }];
   if (sql.includes('SELECT document_code')) return [{ document_code: 42 }];
@@ -234,7 +242,7 @@ test('administrator must supply a strong initial attorney password, not a shared
   }
 });
 
-test('new cases are private while internal listing is not restricted to public rows', async () => {
+test('new cases are private and public lookup requires an approved summary record', async () => {
   handler = sql => sql.includes('SELECT code FROM case_category') ? [{ code: 'CIVIL' }] : { insertId: 42 };
   const created = await api('/cases', { method: 'POST', body: { title: 'Private synthetic case' } });
   assert.equal(created.status, 201);
@@ -243,7 +251,59 @@ test('new cases are private while internal listing is not restricted to public r
   assert.match(insert.sql, /CURDATE\(\), \?, 0\)/);
   handler = () => [];
   await api('/cases'); assert.ok(!calls.at(-1).sql.includes('cf.is_visible = 1'));
-  await api('/cases/public', { noAuth: true }); assert.ok(calls.at(-1).sql.includes('cf.is_visible = 1'));
+  await api('/cases/public', { noAuth: true });
+  const publicQuery = calls.at(-1).sql;
+  assert.ok(publicQuery.includes('FROM public_case_summary'));
+  assert.ok(publicQuery.includes('s.is_current = 1'));
+  assert.ok(publicQuery.includes('s.approved_at IS NOT NULL'));
+  assert.ok(!publicQuery.includes('cf.is_visible = 1'));
+  assert.ok(!publicQuery.includes('cf.description'));
+});
+
+test('admin publication exposes only the approved summary PDF and unpublishing blocks it', async () => {
+  let storedPdfPath;
+  let published = true;
+  handler = (sql, params) => {
+    if (sql.includes('JOIN case_attorney')) return [{ attorney_id: 'A0001' }];
+    if (sql.includes('SELECT cf_code FROM case_file')) return [{ cf_code: 42 }];
+    if (sql.includes('MAX(version_no)')) return [{ latest_version: 0 }];
+    if (sql.includes('INSERT INTO public_case_summary')) {
+      storedPdfPath = params[5]; files.add(storedPdfPath); published = true; return { insertId: 7, affectedRows: 1 };
+    }
+    if (sql.includes('SELECT s.cf_code')) return [{
+      cf_code: 42, public_title: 'Approved Demo Summary', summary_text: 'Only approved public information.',
+      pdf_file_name: 'approved-summary.pdf', creation_date: '2026-01-01',
+      fname: 'Demo', lname: 'Attorney', attorney_id: 'A0001'
+    }];
+    if (sql.includes('SELECT s.pdf_file_path')) return published
+      ? [{ pdf_file_path: storedPdfPath, pdf_file_name: 'approved-summary.pdf' }]
+      : [];
+    if (sql.includes('UPDATE public_case_summary SET is_current = 0')) { published = false; return { affectedRows: 1 }; }
+    return [];
+  };
+
+  const post = await api('/cases/42/public-summary', { method: 'POST', form: publicSummaryForm() });
+  assert.equal(post.status, 201);
+  assert.equal(post.data.data.version, 1);
+
+  const publicList = await api('/cases/public', { noAuth: true });
+  assert.equal(publicList.status, 200);
+  assert.equal(publicList.data.data[0].summary, 'Only approved public information.');
+  assert.equal(publicList.data.data[0].handling_attorney, 'Atty. Demo Attorney');
+  assert.equal(publicList.data.data[0].description, undefined);
+
+  const download = await api('/cases/public/42/summary.pdf', { noAuth: true });
+  assert.equal(download.status, 200);
+  assert.match(download.headers.get('content-type'), /application\/pdf/);
+  assert.match(download.data, /^%PDF-1\.4/);
+
+  assert.equal((await api('/cases/42/public-summary', { method: 'DELETE' })).status, 200);
+  assert.equal((await api('/cases/public/42/summary.pdf', { noAuth: true })).status, 404);
+});
+
+test('non-admins cannot publish public summaries', async () => {
+  assert.equal((await api('/cases/42/public-summary', { method: 'POST', role: 2, form: publicSummaryForm() })).status, 403);
+  assert.equal(calls.some(c => c.sql.includes('INSERT INTO public_case_summary')), false);
 });
 
 for (const options of [{ noAuth: true, status: 401 }, { role: 5, status: 403 }]) {

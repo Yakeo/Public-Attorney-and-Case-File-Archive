@@ -34,6 +34,22 @@
       </form>
     </section>
     <section class="card" style="margin-top:1.5rem;">
+      <h3>Publish Approved Public Case Summary</h3>
+      <p class="text-muted">Publishing is an explicit disclosure approval. Confirm the summary and PDF are authorized for public release; do not upload internal case files or confidential notes.</p>
+      <div id="publicSummaryError" class="error-banner hidden"></div>
+      <form id="publishSummaryForm">
+        <div class="form-group"><label for="summaryCaseId">Case ID</label><input type="number" id="summaryCaseId" min="1" required></div>
+        <div class="form-group"><label for="summaryPublicTitle">Public title</label><input type="text" id="summaryPublicTitle" maxlength="150" required></div>
+        <div class="form-group"><label for="summaryHandlingAttorney">Handling attorney ID (must be linked to this case)</label><input type="text" id="summaryHandlingAttorney" maxlength="5" required></div>
+        <div class="form-group"><label for="summaryText">Approved public summary</label><textarea id="summaryText" rows="5" maxlength="10000" required></textarea></div>
+        <div class="form-group"><label for="summaryPdf">Approved public summary PDF (max 15 MB)</label><input type="file" id="summaryPdf" accept="application/pdf,.pdf" required></div>
+        <button type="submit" class="btn-primary">Approve and Publish Summary</button>
+      </form>
+      <hr class="divider">
+      <h4>Latest public-summary versions</h4>
+      <div id="publicSummaryList"><p class="text-muted">Loading...</p></div>
+    </section>
+    <section class="card" style="margin-top:1.5rem;">
       <h3>Attorney Directory</h3>
       <hr class="divider">
       <div id="attorneyList"></div>

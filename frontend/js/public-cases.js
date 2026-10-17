@@ -3,22 +3,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const res = await apiRequest('/cases/public');
     const cases = res.data || [];
-    if (cases.length === 0) {
-      list.innerHTML = `<p class="text-muted">No public cases available.</p>`;
+    if (!cases.length) {
+      list.innerHTML = `<p class="text-muted">No approved public summaries are available.</p>`;
       return;
     }
-    list.innerHTML = cases.map(c => `
-      <div class="doc-card" style="margin-bottom:0.5rem;">
+
+    list.innerHTML = cases.map((c) => `
+      <article class="doc-card" style="margin-bottom:0.75rem;">
         <strong>${escapeHtml(c.title)}</strong>
-        <span class="badge" style="margin-left:0.5rem;">${escapeHtml(c.status)}</span>
-        <div class="text-muted text-xs">Case #${escapeHtml(c.case_number)} · ${escapeHtml(c.created_at ? new Date(c.created_at).toLocaleDateString() : '')}</div>
-      </div>
+        <div class="text-muted text-xs">Public case reference: ${escapeHtml(c.case_number)}</div>
+        <details style="margin-top:0.65rem;">
+          <summary style="cursor:pointer;">View public summary</summary>
+          <p style="white-space:pre-wrap; margin-top:0.75rem;">${escapeHtml(c.summary)}</p>
+          <p class="text-muted text-xs"><strong>Handling attorney:</strong> ${escapeHtml(c.handling_attorney)}</p>
+          ${c.pdf_available ? `<a class="btn-secondary" href="/api/v1/cases/public/${encodeURIComponent(c.id)}/summary.pdf">Download approved public summary (PDF)</a>` : ''}
+        </details>
+      </article>
     `).join('');
   } catch (e) {
     list.innerHTML = `<p class="error-text">${escapeHtml(e.message)}</p>`;
   }
 
-  function escapeHtml(str) {
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 });
