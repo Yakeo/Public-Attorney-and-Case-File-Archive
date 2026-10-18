@@ -13,6 +13,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const clientSelect = document.getElementById('clientSelect');
   const assignAttorneyForm = document.getElementById('assignAttorneyForm');
   const linkClientForm = document.getElementById('linkClientForm');
+  const clientModal = document.getElementById('clientModal');
+  const counselModal = document.getElementById('counselModal');
+  const openClientModalBtn = document.getElementById('openClientModalBtn');
+  const openCounselModalBtn = document.getElementById('openCounselModalBtn');
+  const clientModalError = document.getElementById('clientModalError');
+  const counselModalError = document.getElementById('counselModalError');
+
+  let currentUserRole = null;
+  const canManageCase = () => [1, 3].includes(Number(currentUserRole));
+  function openModal(modal, errorEl) {
+    if (errorEl) errorEl.classList.add('hidden');
+    if (modal) modal.classList.remove('hidden');
+  }
+  function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
 
   const uploadModal = document.getElementById('uploadModal');
   const openUploadModalBtn = document.getElementById('openUploadModalBtn');
@@ -30,12 +44,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   initCaseView();
 
+  if (caseHeaderCard) caseHeaderCard.addEventListener('click', (event) => {
+    if (!canManageCase()) return;
+    if (event.target.closest('#headerLinkClientBtn')) openModal(clientModal, clientModalError);
+    if (event.target.closest('#headerAssignCounselBtn')) openModal(counselModal, counselModalError);
+  });
+
+  if (openClientModalBtn) openClientModalBtn.addEventListener('click', () => openModal(clientModal, clientModalError));
+  if (openCounselModalBtn) openCounselModalBtn.addEventListener('click', () => openModal(counselModal, counselModalError));
+  const closeClientModalBtn = document.getElementById('closeClientModalBtn');
+  const closeCounselModalBtn = document.getElementById('closeCounselModalBtn');
+  if (closeClientModalBtn) closeClientModalBtn.addEventListener('click', () => closeModal(clientModal));
+  if (closeCounselModalBtn) closeCounselModalBtn.addEventListener('click', () => closeModal(counselModal));
+  for (const modal of [clientModal, counselModal]) {
+    if (!modal) continue;
+    modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(modal); });
+  }
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    closeModal(clientModal);
+    closeModal(counselModal);
+  });
+
   async function initCaseView() {
     try {
       const user = await apiRequest('/auth/me');
-      if (![1, 3].includes(user.data.role_id)) {
+      currentUserRole = Number(user.data.role_id);
+      if (!canManageCase()) {
         if (assignAttorneyForm) assignAttorneyForm.style.display = 'none';
         if (linkClientForm) linkClientForm.style.display = 'none';
+        if (openClientModalBtn) openClientModalBtn.style.display = 'none';
+        if (openCounselModalBtn) openCounselModalBtn.style.display = 'none';
       }
       const [caseRes, docsRes, hearingsRes, attsRes, clientsRes, allAttRes, allCliRes] = await Promise.all([
         apiRequest(`/cases/${caseId}`),
@@ -71,6 +110,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         </div>
         <span class="status-tag status-${(c.status || '').toLowerCase()}">${escapeHtml(c.status || 'Active')}</span>
       </div>
+      ${canManageCase() ? `
+      <div class="case-header-actions" style="margin-top:0.85rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button type="button" id="headerLinkClientBtn" class="btn-primary btn-sm">+ Link Client</button>
+        <button type="button" id="headerAssignCounselBtn" class="btn-secondary btn-sm">+ Assign Counsel</button>
+      </div>` : ''}
     `;
   }
 
@@ -285,11 +329,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       const attorney_id = attorneySelect ? attorneySelect.value : '';
       const role_on_case = document.getElementById('roleOnCaseInput') ? document.getElementById('roleOnCaseInput').value.trim() : '';
       if (!attorney_id) return;
+      const button = document.getElementById('saveCounselBtn');
+      if (button) button.disabled = true;
       try {
         await apiRequest(`/cases/${caseId}/attorneys`, 'POST', { attorney_id, role_on_case });
+        assignAttorneyForm.reset();
+        closeModal(counselModal);
         await initCaseView();
+        showToast('Counsel assigned to case.', 'success');
       } catch (err) {
-        showToast(err.message || 'Failed to assign attorney.', 'error');
+        if (counselModalError) {
+          counselModalError.textContent = err.message || 'Failed to assign attorney.';
+          counselModalError.classList.remove('hidden');
+        }
+      } finally {
+        if (button) button.disabled = false;
       }
     });
   }
@@ -300,11 +354,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       const client_id = clientSelect ? clientSelect.value : '';
       const client_role = document.getElementById('clientRoleInput') ? document.getElementById('clientRoleInput').value.trim() : '';
       if (!client_id) return;
+      const button = document.getElementById('saveClientLinkBtn');
+      if (button) button.disabled = true;
       try {
         await apiRequest(`/clients/${client_id}/cases`, 'POST', { cf_code: caseId, client_role });
+        linkClientForm.reset();
+        closeModal(clientModal);
         await initCaseView();
+        showToast('Client linked to case.', 'success');
       } catch (err) {
-        showToast(err.message || 'Failed to link client.', 'error');
+        if (clientModalError) {
+          clientModalError.textContent = err.message || 'Failed to link client.';
+          clientModalError.classList.remove('hidden');
+        }
+      } finally {
+        if (button) button.disabled = false;
       }
     });
   }

@@ -48,40 +48,20 @@
 
         <section class="card">
           <div class="card-header-flex">
-            <h3>Assigned Counsel</h3>
+            <h3>Linked Clients</h3>
+            <button id="openClientModalBtn" type="button" class="btn-secondary btn-sm">+ Link Client</button>
           </div>
           <hr class="divider">
-          <div id="attorneysList"><p class="text-muted">Loading...</p></div>
-          <form id="assignAttorneyForm" style="margin-top:1rem;">
-            <div class="form-group">
-              <label for="attorneySelect">Assign Attorney</label>
-              <select id="attorneySelect" class="form-control"></select>
-            </div>
-            <div class="form-group">
-              <label for="roleOnCaseInput">Role on Case</label>
-              <input type="text" id="roleOnCaseInput" placeholder="Lead Counsel / Co-Counsel">
-            </div>
-            <button type="submit" class="btn-secondary btn-sm">Assign Counsel</button>
-          </form>
+          <div id="clientsList"><p class="text-muted">Loading...</p></div>
         </section>
 
         <section class="card">
           <div class="card-header-flex">
-            <h3>Linked Clients</h3>
+            <h3>Assigned Counsel</h3>
+            <button id="openCounselModalBtn" type="button" class="btn-secondary btn-sm">+ Assign Counsel</button>
           </div>
           <hr class="divider">
-          <div id="clientsList"><p class="text-muted">Loading...</p></div>
-          <form id="linkClientForm" style="margin-top:1rem;">
-            <div class="form-group">
-              <label for="clientSelect">Link Client</label>
-              <select id="clientSelect" class="form-control"></select>
-            </div>
-            <div class="form-group">
-              <label for="clientRoleInput">Client Role</label>
-              <input type="text" id="clientRoleInput" placeholder="Plaintiff / Defendant / Petitioner">
-            </div>
-            <button type="submit" class="btn-secondary btn-sm">Link Client</button>
-          </form>
+          <div id="attorneysList"><p class="text-muted">Loading...</p></div>
         </section>
 
         <section class="card">
@@ -163,6 +143,46 @@
         <div class="form-group"><label for="hearingNotes">Notes</label><textarea id="hearingNotes"></textarea></div>
         <label id="hearingOverrideLabel" class="hidden"><input id="hearingOverride" type="checkbox"> Administrator: override a scheduling conflict</label>
         <button id="saveHearingBtn" class="btn-primary full-width" type="submit">Save Hearing</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="clientModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeClientModalBtn" type="button" class="modal-close" aria-label="Close client form">&times;</button>
+      <h2>Link Client to Case</h2>
+      <p class="subtitle">Attach an existing client profile to this case file with their party role. Create new client profiles from the Clients page first.</p>
+      <div id="clientModalError" class="error-banner hidden" role="alert"></div>
+      <form id="linkClientForm">
+        <div class="form-group">
+          <label for="clientSelect">Client</label>
+          <select id="clientSelect" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label for="clientRoleInput">Client Role</label>
+          <input type="text" id="clientRoleInput" placeholder="Plaintiff / Defendant / Petitioner" maxlength="20">
+        </div>
+        <button type="submit" id="saveClientLinkBtn" class="btn-primary full-width">Link Client</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="counselModal" class="modal hidden">
+    <div class="modal-content">
+      <button id="closeCounselModalBtn" type="button" class="modal-close" aria-label="Close counsel form">&times;</button>
+      <h2>Assign Counsel to Case</h2>
+      <p class="subtitle">Reassignment adds a new record and preserves the prior assignment history. Inactive attorneys cannot be assigned.</p>
+      <div id="counselModalError" class="error-banner hidden" role="alert"></div>
+      <form id="assignAttorneyForm">
+        <div class="form-group">
+          <label for="attorneySelect">Attorney</label>
+          <select id="attorneySelect" class="form-control" required></select>
+        </div>
+        <div class="form-group">
+          <label for="roleOnCaseInput">Role on Case</label>
+          <input type="text" id="roleOnCaseInput" placeholder="Lead Counsel / Co-Counsel" maxlength="20">
+        </div>
+        <button type="submit" id="saveCounselBtn" class="btn-primary full-width">Assign Counsel</button>
       </form>
     </div>
   </div>
