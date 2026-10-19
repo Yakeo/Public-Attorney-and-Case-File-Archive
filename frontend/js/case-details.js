@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const openCounselModalBtn = document.getElementById('openCounselModalBtn');
   const clientModalError = document.getElementById('clientModalError');
   const counselModalError = document.getElementById('counselModalError');
+  const clientMode = document.getElementById('clientMode');
+  const existingClientGroup = document.getElementById('existingClientGroup');
+  const newClientFields = document.getElementById('newClientFields');
 
   let currentUserRole = null;
   const canManageCase = () => [1, 3].includes(Number(currentUserRole));
@@ -27,6 +30,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (modal) modal.classList.remove('hidden');
   }
   function closeModal(modal) { if (modal) modal.classList.add('hidden'); }
+
+  // The client modal either links an existing profile or creates one, then links it.
+  function updateClientMode() {
+    const isNew = clientMode ? clientMode.value === 'new' : false;
+    if (existingClientGroup) existingClientGroup.hidden = isNew;
+    if (newClientFields) newClientFields.hidden = !isNew;
+    if (clientSelect) clientSelect.required = !isNew;
+    for (const id of ['newClientFname', 'newClientLname', 'newClientBirthDate']) {
+      const el = document.getElementById(id);
+      if (el) el.required = isNew;
+    }
+  }
+  if (clientMode) clientMode.addEventListener('change', updateClientMode);
+  updateClientMode();
 
   const uploadModal = document.getElementById('uploadModal');
   const openUploadModalBtn = document.getElementById('openUploadModalBtn');
@@ -46,7 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (caseHeaderCard) caseHeaderCard.addEventListener('click', (event) => {
     if (!canManageCase()) return;
-    if (event.target.closest('#headerLinkClientBtn')) openModal(clientModal, clientModalError);
+    if (event.target.closest('#headerAddClientBtn')) openModal(clientModal, clientModalError);
     if (event.target.closest('#headerAssignCounselBtn')) openModal(counselModal, counselModalError);
   });
 
@@ -112,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       </div>
       ${canManageCase() ? `
       <div class="case-header-actions" style="margin-top:0.85rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-        <button type="button" id="headerLinkClientBtn" class="btn-primary btn-sm">+ Link Client</button>
+        <button type="button" id="headerAddClientBtn" class="btn-primary btn-sm">+ Add Client</button>
         <button type="button" id="headerAssignCounselBtn" class="btn-secondary btn-sm">+ Assign Counsel</button>
       </div>` : ''}
     `;
@@ -351,20 +368,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (linkClientForm) {
     linkClientForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const client_id = clientSelect ? clientSelect.value : '';
+      const isNew = clientMode ? clientMode.value === 'new' : false;
       const client_role = document.getElementById('clientRoleInput') ? document.getElementById('clientRoleInput').value.trim() : '';
-      if (!client_id) return;
+      let client_id = clientSelect ? clientSelect.value : '';
+      if (!isNew && !client_id) return;
       const button = document.getElementById('saveClientLinkBtn');
       if (button) button.disabled = true;
       try {
+        if (isNew) {
+          const field = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+          const created = await apiRequest('/clients', 'POST', {
+            fname: field('newClientFname'),
+            mname: field('newClientMname') || null,
+            lname: field('newClientLname'),
+            birth_date: field('newClientBirthDate'),
+            gender: field('newClientGender') || null,
+            email: field('newClientEmail') || null,
+            contact_number: field('newClientPhone') || null,
+            city: field('newClientCity') || null,
+            region: field('newClientRegion') || null
+          });
+          client_id = created && created.data ? created.data.client_id : null;
+          if (!client_id) throw new Error('Client was created but no identifier was returned.');
+        }
         await apiRequest(`/clients/${client_id}/cases`, 'POST', { cf_code: caseId, client_role });
         linkClientForm.reset();
+        updateClientMode();
         closeModal(clientModal);
         await initCaseView();
-        showToast('Client linked to case.', 'success');
+        showToast(isNew ? 'Client created and linked to case.' : 'Client linked to case.', 'success');
       } catch (err) {
         if (clientModalError) {
-          clientModalError.textContent = err.message || 'Failed to link client.';
+          clientModalError.textContent = err.message || 'Failed to add client.';
           clientModalError.classList.remove('hidden');
         }
       } finally {
